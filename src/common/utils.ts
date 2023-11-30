@@ -1,6 +1,7 @@
 import { CosmosBlock, CosmosTransaction } from '@subql/types-cosmos'
 import isBase64 from 'is-base64'
 import * as fs from 'fs'
+import { UnknownMessageType } from '../mappings/interfaces'
 
 export function getTimestamp(block: CosmosBlock): bigint {
   return BigInt(block.header.time.valueOf())
@@ -26,7 +27,7 @@ export function decodeBase64IfEncoded(input: string): string {
 
 const jsonFilePath = '/app/unknown_types/unknown_types.json'
 
-export function addThisType(newEntry: Record<string, any>): void {
+export function addToUnknownMessageTypes(newEntry: UnknownMessageType): void {
   logger.info(`this is ========>> ${toJson(newEntry)}`)
   let data: any = []
   const jsonData = fs.readFileSync(jsonFilePath, 'utf-8')
@@ -43,20 +44,20 @@ export function addThisType(newEntry: Record<string, any>): void {
     if (existingEntryIndex === -1) {
       // Entry doesn't exist, create a new entry
       data.push({
-        type: newEntry['type'],
-        heights: newEntry['heights'],
+        type: newEntry.type,
+        heights: newEntry.blocks,
       })
 
       logger.info('New entry added successfully.')
     } else {
       if (data[existingEntryIndex]['heights']) {
         const existingHeights = data[existingEntryIndex]['heights']
-        const newHeights = newEntry['heights']
+        const newHeights = newEntry.blocks
         const uniqueHeights = Array.from(new Set([...existingHeights, ...newHeights]))
 
         data[existingEntryIndex]['heights'] = uniqueHeights
       } else {
-        data[existingEntryIndex]['heights'] = newEntry['heights']
+        data[existingEntryIndex]['heights'] = newEntry.blocks
       }
     }
 

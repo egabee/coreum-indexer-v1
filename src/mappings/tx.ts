@@ -1,72 +1,90 @@
 import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
-import { toJson, addThisType } from '../common/utils'
-import { Any } from '../types/proto-interfaces/google/protobuf/any'
+import { toJson, addToUnknownMessageTypes } from '../common/utils'
+import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
+import { DecodedMessage, GenericMessage } from './interfaces'
+import { createTransactionObject } from './helper'
 
 const txtDecoder = new TextDecoder('utf-8')
 
-interface GenericMessage {
-  [key: string]: any
-  type: string
-  msg?: Record<string, any>[]
-  msgs?: Record<string, any>[]
-  clientMessage?: Record<string, any>
-}
-
-export async function handleTx(msg: CosmosTransaction): Promise<void> {
-  const height = msg.block.header.height
+export async function handleTx(tx: CosmosTransaction): Promise<void> {
+  const height = tx.block.header.height
   logger.info(`-------- ${height} -----------`)
 
-  for (const message of msg.decodedTx.body.messages) {
-    const knownType = registry.lookupType(message.typeUrl)
+  const txMessages = []
+
+  for (const { typeUrl, value } of tx.decodedTx.body.messages) {
+    const knownType = registry.lookupType(typeUrl)
 
     if (!knownType) {
-      const uk: Record<string, any> = { type: message.typeUrl, heights: [height] }
-      logger.info(`%%%%%%%%%% Unknown %%%%%%%%% ${toJson(uk)} `)
-      addThisType(uk)
+      const unknownMsgType = { type: typeUrl, blocks: [height] }
+      addToUnknownMessageTypes(unknownMsgType)
+
+      logger.info(`%%%%%%%%%% UnknownType detected %%%%%%%%% ${toJson(unknownMsgType)} `)
+
       continue
     }
 
     try {
-      const decodedMsg = knownType.decode(message.value)
-      const fullMsg: GenericMessage = handleMessageType(decodedMsg, message)
+      const decodedMsg = knownType.decode(value)
 
-      // logger.info(`----------this is Full-----${toJson(fullMsg)}----------------------`)
+      const fullMsg = handleMessageType(decodedMsg, { typeUrl, value })
+      txMessages.push(fullMsg)
     } catch (error) {
       throw error // throw the error to stop the indexer
     }
   }
+
+  const transaction = createTransactionObject(tx)
+  transaction.messages = txMessages
+
+  logger.info(`Full tx: ${toJson(transaction)}`)
 }
 
-// helper function to decode messages
-function decodeMessage(value: Uint8Array, typeUrl: string | undefined): { type: string; [key: string]: any } {
-  const gtype = typeUrl ? registry.lookupType(typeUrl) : undefined
-  const decodedMessage = gtype?.decode(value)
+/**
+ * Helper function to decode messages
+ * @param value
+ * @param typeUrl
+ * @returns
+ */
+function decodeMessage(value: Uint8Array, typeUrl: string): DecodedMessage {
+  const msgType = registry.lookupType(typeUrl)
+
+  if (!msgType) throw new Error(`Detect a not registered proto type ${typeUrl}`)
+
+  const decodedMessage = msgType.decode(value)
+
   return { type: typeUrl, ...decodedMessage }
 }
 
-//function to decode and handle different types of messages
-function handleMessageType(decodedMsg: any, message: Any): GenericMessage {
-  const foundProp = Boolean(decodedMsg.msg || decodedMsg.msgs || decodedMsg.clientMessage)
+/**
+ * function to decode and handle different types of messages
+ * @param decodedMsg
+ * @param message
+ * @returns
+ */
+function handleMessageType(decodedMsg: any, message: ProtoAny): GenericMessage {
+  const hasMessageProperty = Boolean(decodedMsg.msg || decodedMsg.msgs || decodedMsg.clientMessage)
 
   const { clientMessage, msgs, msg, ...meta } = decodedMsg
 
+  let genericMessage: GenericMessage = { type: message.typeUrl }
+
   if (msgs) {
-    const Msgs: Any[] = msgs
-    const decodedMsgs = Msgs.map(({ typeUrl, value }) => decodeMessage(value, typeUrl))
-    return { msgs: decodedMsgs, type: message.typeUrl, ...meta }
+    const messageList = msgs as ProtoAny[]
+    const decodedMsgs = messageList.map(({ typeUrl, value }) => decodeMessage(value, typeUrl))
+    genericMessage = { msgs: decodedMsgs, ...meta, ...genericMessage }
   } else if (msg) {
-    const msgstr = txtDecoder.decode(msg)
-    const msgstring = JSON.parse(msgstr)
-    return { msg: msgstring, type: message.typeUrl, ...meta }
+    genericMessage = { msg: JSON.parse(txtDecoder.decode(msg)), ...meta, ...genericMessage }
   } else if (clientMessage) {
     const { typeUrl, value } = clientMessage
-    const decodedMessage = decodeMessage(value, typeUrl)
-    return { clientMessage: decodedMessage, type: message.typeUrl, ...meta }
-  } else if (!foundProp) {
-    return { ...decodedMsg, type: message.typeUrl }
+    genericMessage = { clientMessage: decodeMessage(value, typeUrl), ...meta, ...genericMessage }
+  } else if (!hasMessageProperty) {
+    genericMessage = { ...decodedMsg, ...genericMessage }
+  } else {
+    genericMessage = { type: 'unknown' }
   }
 
-  return { type: 'unknown' }
+  return genericMessage
 }
