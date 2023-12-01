@@ -40,11 +40,9 @@ export function createTransactionObject(cosmosTx: CosmosTransaction): Transactio
 export function decodeMessage(value: Uint8Array, typeUrl: string): DecodedMessage {
   const msgType = registry.lookupType(typeUrl)
 
-  if (!msgType) throw new Error(`Detect a not registered proto type ${typeUrl}`)
+  if (!msgType) logger.info(`Detect a not registered proto type ${typeUrl}`)
 
-  const decodedMessage = msgType.decode(value)
-
-  return { type: typeUrl, ...decodedMessage }
+  return msgType ? { type: typeUrl, ...msgType.decode(value) } : { type: typeUrl }
 }
 
 /**
