@@ -244,6 +244,73 @@ const project: CosmosProject = {
 
       ['google.protobuf.Any', { file: './proto/google/protobuf/any.proto', messages: ['Any'] }],
       ['google.protobuf.Timestamp', { file: './proto/google/protobuf/timestamp.proto', messages: ['Timestamp'] }],
+      [
+        'coreum.asset.nft.v1',
+        {
+          file: './proto/coreum/asset/nft/v1/tx.proto',
+          messages: [
+            'MsgIssueClass',
+            'MsgMint',
+            'MsgBurn',
+            'MsgFreeze',
+            'MsgUnfreeze',
+            'MsgAddToWhitelist',
+            'MsgRemoveFromWhitelist',
+            'MsgClassFreeze',
+            'MsgClassUnfreeze',
+            'MsgAddToClassWhitelist',
+            'MsgRemoveFromClassWhitelist',
+            'MsgUpdateParams',
+          ],
+        },
+      ],
+      [
+        'coreum.asset.nft.v1.ClassFeature',
+        { file: './proto/coreum/asset/nft/v1/nft.proto', messages: ['ClassFeature'] },
+      ],
+      [
+        'coreum.asset.nft.v1.authz',
+        { file: './proto/coreum/asset/nft/v1/authz.proto', messages: ['SendAuthorization', 'NFTIdentifier'] },
+      ],
+      ['coreum.nft.v1beta1', { file: './proto/coreum/nft/v1beta1/tx.proto', messages: ['MsgSend'] }],
+      ['coreum.nft.v1beta1.nft', { file: './proto/coreum/nft/v1beta1/nft.proto', messages: ['Class', 'NFT'] }],
+      [
+        'coreum.asset.ft.v1',
+        {
+          file: './proto/coreum/asset/ft/v1/tx.proto',
+          messages: [
+            'MsgIssue',
+            'MsgMint',
+            'MsgBurn',
+            'MsgFreeze',
+            'MsgUnfreeze',
+            'MsgGloballyFreeze',
+            'MsgGloballyUnfreeze',
+            'MsgSetWhitelistedLimit',
+            'MsgUpgradeTokenV1',
+            'MsgUpdateParams',
+          ],
+        },
+      ],
+      [
+        'coreum.asset.ft.v1.Token',
+        {
+          file: './proto/coreum/asset/ft/v1/token.proto',
+          messages: [
+            'Token',
+            'Feature',
+            'Definition',
+            'DelayedTokenUpgradeV1',
+            'TokenUpgradeV1Status',
+            'TokenUpgradeStatuses',
+          ],
+        },
+      ],
+      [
+        'coreum.asset.ft.v1.authz',
+        { file: './proto/coreum/asset/ft/v1/authz.proto', messages: ['MintAuthorization', 'BurnAuthorization'] },
+      ],
+      ['coreum.feemodel.v1', { file: './proto/coreum/feemodel/v1/tx.proto', messages: ['MsgUpdateParams'] }],
     ]),
   },
 }
