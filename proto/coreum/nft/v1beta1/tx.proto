@@ -1,16 +1,21 @@
 syntax = "proto3";
 package coreum.nft.v1beta1;
 
-option go_package = "github.com/CoreumFoundation/coreum/x/nft";
-
 import "cosmos/msg/v1/msg.proto";
+
+option go_package = "github.com/CoreumFoundation/coreum/v4/x/nft";
 
 // Msg defines the nft Msg service.
 service Msg {
   // Send defines a method to send a nft from one account to another account.
+  //
+  // Deprecated: use cosmos-sdk/x/nft package instead
   rpc Send(MsgSend) returns (MsgSendResponse);
 }
+
 // MsgSend represents a message to send a nft from one account to another account.
+//
+// Deprecated: use cosmos-sdk/x/nft package instead
 message MsgSend {
   option (cosmos.msg.v1.signer) = "sender";
 
@@ -26,5 +31,6 @@ message MsgSend {
   // receiver is the receiver address of nft
   string receiver = 4;
 }
+
 // MsgSendResponse defines the Msg/Send response type.
 message MsgSendResponse {}
