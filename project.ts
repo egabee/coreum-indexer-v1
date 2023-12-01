@@ -19,6 +19,24 @@ const project: CosmosProject = {
   schema: {
     file: './schema.graphql',
   },
+  dataSources: [
+    {
+      kind: CosmosDatasourceKind.Runtime,
+      startBlock: 0,
+
+      endBlock: 1000000,
+
+      mapping: {
+        file: './dist/index.js',
+        handlers: [
+          {
+            handler: 'handleTx',
+            kind: CosmosHandlerKind.Transaction,
+          },
+        ],
+      },
+    },
+  ],
   network: {
     /* The genesis hash of the network (hash of block 0) */
     /**
@@ -32,10 +50,7 @@ const project: CosmosProject = {
       // 'https://full-node.testnet-1.coreum.dev:26657'
       // https://injective-rpc.w3coins.io   52669166
     ],
-
-    // --------------- Chain id ------------------ [ ]
     chainId: 'coreum-mainnet-1',
-
     chaintypes: new Map([
       //"type": "/cosmos.slashing.v1beta1.MsgUnjail",
       [
@@ -231,25 +246,6 @@ const project: CosmosProject = {
       ['google.protobuf.Timestamp', { file: './proto/google/protobuf/timestamp.proto', messages: ['Timestamp'] }],
     ]),
   },
-
-  dataSources: [
-    {
-      kind: CosmosDatasourceKind.Runtime,
-      startBlock: 381293,
-
-      endBlock: 1000000 ,
-
-      mapping: {
-        file: './dist/index.js',
-        handlers: [
-          {
-            handler: 'handleTx',
-            kind: CosmosHandlerKind.Transaction,
-          },
-        ],
-      },
-    },
-  ],
 }
 
 // Must set default to the project instance
