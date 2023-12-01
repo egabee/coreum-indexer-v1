@@ -41,3 +41,8 @@ export interface TransactionObject {
   // "Timestamp in which the balance was last modified "
   timestamp: bigint
 }
+
+export interface TransactionTopic {
+  topic: string
+  message: TransactionObject
+}
