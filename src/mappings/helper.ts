@@ -2,7 +2,7 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { decodeBase64IfEncoded, getTimestamp } from '../common/utils'
+import { addToUnknownMessageTypes, decodeBase64IfEncoded, getTimestamp } from '../common/utils'
 import { DecodedMessage, EventLog, GenericMessage, TransactionObject } from './interfaces'
 
 const textDecoder = new TextDecoder('utf-8')
@@ -37,12 +37,16 @@ export function createTransactionObject(cosmosTx: CosmosTransaction): Transactio
  * @param typeUrl
  * @returns
  */
-export function decodeMessage(value: Uint8Array, typeUrl: string): DecodedMessage {
+export function decodeMessage(value: Uint8Array, typeUrl: string, block?: number): DecodedMessage {
   const msgType = registry.lookupType(typeUrl)
 
-  if (!msgType) logger.info(`Detect a not registered proto type ${typeUrl}`)
+  if (!msgType) {
+    addToUnknownMessageTypes({ type: typeUrl, blocks: [block!] })
+    logger.info(`Detect a not registered proto type ${typeUrl}`)
+    return { type: typeUrl }
+  }
 
-  return msgType ? { type: typeUrl, ...msgType.decode(value) } : { type: typeUrl }
+  return { type: typeUrl, ...msgType.decode(value) }
 }
 
 /**
@@ -51,7 +55,7 @@ export function decodeMessage(value: Uint8Array, typeUrl: string): DecodedMessag
  * @param message
  * @returns
  */
-export function handleMessageType(decodedMsg: any, message: ProtoAny): GenericMessage {
+export function handleMessageType(decodedMsg: any, message: ProtoAny, block: number): GenericMessage {
   const hasMessageProperty = Boolean(decodedMsg.msg || decodedMsg.msgs || decodedMsg.clientMessage)
 
   const { clientMessage, msgs, msg, ...meta } = decodedMsg
@@ -60,13 +64,13 @@ export function handleMessageType(decodedMsg: any, message: ProtoAny): GenericMe
 
   if (msgs) {
     const messageList = msgs as ProtoAny[]
-    const decodedMsgs = messageList.map(({ typeUrl, value }) => decodeMessage(value, typeUrl))
+    const decodedMsgs = messageList.map(({ typeUrl, value }) => decodeMessage(value, typeUrl, block))
     genericMessage = { msgs: decodedMsgs, ...meta, ...genericMessage }
   } else if (msg) {
     genericMessage = { msg: JSON.parse(textDecoder.decode(msg)), ...meta, ...genericMessage }
   } else if (clientMessage) {
     const { typeUrl, value } = clientMessage
-    genericMessage = { clientMessage: decodeMessage(value, typeUrl), ...meta, ...genericMessage }
+    genericMessage = { clientMessage: decodeMessage(value, typeUrl, block), ...meta, ...genericMessage }
   } else if (!hasMessageProperty) {
     genericMessage = { ...decodedMsg, ...genericMessage }
   } else {

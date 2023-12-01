@@ -24,7 +24,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
     try {
       const decodedMsg = knownType.decode(value)
 
-      const fullMsg = handleMessageType(decodedMsg, { typeUrl, value })
+      const fullMsg = handleMessageType(decodedMsg, { typeUrl, value }, height)
       txMessages.push(fullMsg)
     } catch (error) {
       throw error // throw the error to stop the indexer
