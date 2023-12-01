@@ -10,9 +10,9 @@
     "dev": "subql codegen && subql build && docker compose pull && docker compose up --remove-orphans",
     "prepack": "rm -rf dist && npm run build",
     "test": "subql build && subql-node-cosmos test",
-    "clean": "sudo rm -rf ./dist && sudo rm -rf ./.data",
+    "clean": "rm -rf ./dist && rm -rf ./.data",
     "fire": "subql build && docker compose pull && docker compose up --remove-orphans",
-    "thanos": "sudo rm -rf ./dist && sudo rm -rf ./.data && subql build && docker compose pull && docker compose up --remove-orphans"
+    "thanos": "rm -rf ./dist && rm -rf ./.data && subql build && docker compose pull && docker compose up --remove-orphans"
   },
   "homepage": "https://github.com/egabee/Indexer-templete",
   "repository": "github: egabee/Indexer-templete",
