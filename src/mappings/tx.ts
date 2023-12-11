@@ -1,7 +1,7 @@
 import { CosmosTransaction } from '@subql/types-cosmos'
 import { toJson, addToUnknownMessageTypes } from '../common/utils'
 import { createTransactionObject, handleMessageType } from './helper'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const height = tx.block.header.height
@@ -12,7 +12,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   for (const { typeUrl, value } of tx.decodedTx.body.messages) {
     const knownType = registry.lookupType(typeUrl)
 
-    if (!knownType) {
+    if (!knownType || toJson(knownType) == '{}') {
       const unknownMsgType = { type: typeUrl, blocks: [height] }
       addToUnknownMessageTypes(unknownMsgType)
 
@@ -34,7 +34,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const transaction = createTransactionObject(tx)
   transaction.messages = txMessages
 
-  await sendBatchOfMessagesToKafka({ topic: 'coreum_mainnet_tx', message: transaction })
+  // await sendBatchOfMessagesToKafka({ topic: 'coreum_mainnet_tx', message: transaction })
 
-  // logger.info(`Full tx: ${toJson(transaction)}`)
+  logger.info(`Full tx: ${toJson(transaction)}`)
 }
