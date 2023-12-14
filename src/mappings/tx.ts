@@ -2,6 +2,7 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { toJson, addToUnknownMessageTypes } from '../common/utils'
 import { createTransactionObject, handleMessageType } from './helper'
 import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+import { TOPIC_MESSAGE } from '../common/constants'
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const height = tx.block.header.height
@@ -34,7 +35,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const transaction = createTransactionObject(tx)
   transaction.messages = txMessages
 
-  await sendBatchOfMessagesToKafka({ topic: 'tx_1', message: transaction })
+  await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
 
   logger.info(`Full tx: ${toJson(transaction)}`)
 }

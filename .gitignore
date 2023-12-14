@@ -28,7 +28,6 @@ package-lock.json
 target/
 dist/
 src/types
-!src/types/CosmosMessageTypes.ts
 project.yaml
 
 # JetBrains IDE

@@ -27,7 +27,7 @@
     "@cosmjs/proto-signing": "^0.32.0",
     "@cosmjs/stargate": "^0.28.13",
     "@cosmjs/tendermint-rpc": "^0.32.0",
-    "@subql/cli": "latest",
+    "@subql/cli": "^4.2.4",
     "@subql/node-cosmos": "latest",
     "@subql/testing": "latest",
     "@types/is-base64": "^1.1.3",
