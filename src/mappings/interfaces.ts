@@ -29,17 +29,17 @@ export interface EventLog {
 export interface TransactionObject {
   id: string
   //Events emitted from the transaction
-  events: EventLog[]
+  events: any
   //" Messages included in transaction body - saved as json string "
   messages: GenericMessage[]
-  log: string
+  log: any
   success: boolean
-  gasUsed: bigint
-  gasWanted: bigint
+  gasUsed: string
+  gasWanted: string
   //" Block number in which the balance was last modified "
   blockNumber: number
   // "Timestamp in which the balance was last modified "
-  timestamp: bigint
+  timestamp: string
 }
 
 export interface TransactionTopic {

@@ -20,14 +20,14 @@ export function createTransactionObject(cosmosTx: CosmosTransaction): Transactio
 
   return {
     id: cosmosTx.hash,
-    events,
+    events: events,
     messages: [],
-    gasUsed: BigInt(tx.gasUsed),
-    gasWanted: BigInt(tx.gasWanted),
+    gasUsed: tx.gasUsed.toString(),
+    gasWanted: tx.gasWanted.toString(),
     success: tx.code === 0,
     blockNumber: block.header.height,
-    timestamp: getTimestamp(block),
-    log: tx.log || '',
+    timestamp: getTimestamp(block).toString(),
+    log: tx.log,
   }
 }
 
@@ -56,9 +56,10 @@ export function decodeMessage(value: Uint8Array, typeUrl: string, block?: number
  * @returns
  */
 export function handleMessageType(decodedMsg: any, message: ProtoAny, block: number): GenericMessage {
-  const hasMessageProperty = Boolean(decodedMsg.msg || decodedMsg.msgs || decodedMsg.clientMessage)
+  const { clientMessage, msgs, msg, allowance, ...meta } = decodedMsg
 
-  const { clientMessage, msgs, msg, ...meta } = decodedMsg
+  // Check if any of the expected properties (msg, msgs, clientMessage, allowance) exist
+  const hasMessageProperty = Boolean(msg || msgs || clientMessage || allowance)
 
   let genericMessage: GenericMessage = { type: message.typeUrl }
 
@@ -71,6 +72,8 @@ export function handleMessageType(decodedMsg: any, message: ProtoAny, block: num
   } else if (clientMessage) {
     const { typeUrl, value } = clientMessage
     genericMessage = { clientMessage: decodeMessage(value, typeUrl, block), ...meta, ...genericMessage }
+  } else if (allowance) {
+    genericMessage = { allowance: decodeMessage(allowance.value, allowance.typeUrl), ...meta, ...genericMessage }
   } else if (!hasMessageProperty) {
     genericMessage = { ...decodedMsg, ...genericMessage }
   } else {

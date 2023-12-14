@@ -37,7 +37,7 @@ export async function sendBatchOfMessagesToKafka({ message, topic }: Transaction
     const messageResults = await producer.sendBatch({
       topicMessages: [
         {
-          messages: [{ value: toJson({ ...message, chainId: process.env.CHAIN_ID }) }],
+          messages: [{ value: JSON.stringify({ ...message, chainId: process.env.CHAIN_ID }) }],
           topic,
         },
       ],
