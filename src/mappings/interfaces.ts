@@ -1,3 +1,5 @@
+import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
+
 type Any = Record<string, any>
 
 export interface GenericMessage {
@@ -45,4 +47,12 @@ export interface TransactionObject {
 export interface TransactionTopic {
   topic: string
   message: TransactionObject
+}
+
+export interface CosmosDecodedMessage {
+  clientMessage?: ProtoAny
+  msgs?: ProtoAny[]
+  msg?: Uint8Array
+  allowance?: ProtoAny
+  [key: string]: any // Add other possible properties
 }

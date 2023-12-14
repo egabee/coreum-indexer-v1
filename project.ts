@@ -981,6 +981,13 @@ const project: CosmosProject = {
         },
       ],
       [
+        'ibc.lightclients.tendermint.v1',
+        {
+          file: './proto/ibc/lightclients/tendermint/v1/tendermint.proto',
+          messages: ['ClientState', 'ConsensusState', 'Misbehaviour', 'Header', 'Fraction'],
+        },
+      ],
+      [
         'ibc.lightclients.solomachine.v2.Solomachine',
         {
           file: './proto/ibc/lightclients/solomachine/v2/solomachine.proto',

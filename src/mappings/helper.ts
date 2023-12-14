@@ -3,7 +3,8 @@ import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
 import { addToUnknownMessageTypes, decodeBase64IfEncoded, getTimestamp } from '../common/utils'
-import { DecodedMessage, EventLog, GenericMessage, TransactionObject } from './interfaces'
+import { CosmosDecodedMessage, DecodedMessage, EventLog, GenericMessage, TransactionObject } from './interfaces'
+import { MsgGrantAllowance } from '../types/proto-interfaces/cosmos/feegrant/v1beta1/tx'
 
 const textDecoder = new TextDecoder('utf-8')
 
@@ -37,7 +38,7 @@ export function createTransactionObject(cosmosTx: CosmosTransaction): Transactio
  * @param typeUrl
  * @returns
  */
-export function decodeMessage(value: Uint8Array, typeUrl: string, block?: number): DecodedMessage {
+export function decodeMessage({ value, typeUrl }: ProtoAny, block?: number): DecodedMessage {
   const msgType = registry.lookupType(typeUrl)
 
   if (!msgType) {
@@ -55,7 +56,7 @@ export function decodeMessage(value: Uint8Array, typeUrl: string, block?: number
  * @param message
  * @returns
  */
-export function handleMessageType(decodedMsg: any, message: ProtoAny, block: number): GenericMessage {
+export function handleMessageType(decodedMsg: CosmosDecodedMessage, message: ProtoAny, block: number): GenericMessage {
   const { clientMessage, msgs, msg, allowance, ...meta } = decodedMsg
 
   // Check if any of the expected properties (msg, msgs, clientMessage, allowance) exist
@@ -65,20 +66,35 @@ export function handleMessageType(decodedMsg: any, message: ProtoAny, block: num
 
   if (msgs) {
     const messageList = msgs as ProtoAny[]
-    const decodedMsgs = messageList.map(({ typeUrl, value }) => decodeMessage(value, typeUrl, block))
+    const decodedMsgs = messageList.map(({ typeUrl, value }) => decodeMessage({ value, typeUrl }, block))
     genericMessage = { msgs: decodedMsgs, ...meta, ...genericMessage }
   } else if (msg) {
     genericMessage = { msg: JSON.parse(textDecoder.decode(msg)), ...meta, ...genericMessage }
   } else if (clientMessage) {
     const { typeUrl, value } = clientMessage
-    genericMessage = { clientMessage: decodeMessage(value, typeUrl, block), ...meta, ...genericMessage }
+    genericMessage = { clientMessage: decodeMessage({ value, typeUrl }, block), ...meta, ...genericMessage }
   } else if (allowance) {
-    genericMessage = { allowance: decodeMessage(allowance.value, allowance.typeUrl), ...meta, ...genericMessage }
+    const decodedAllowance = decodeMessage(allowance) as unknown as MsgGrantAllowance
+    genericMessage = {
+      ...decodeMsgAllowance(decodedAllowance),
+      ...meta,
+      ...genericMessage,
+    }
   } else if (!hasMessageProperty) {
-    genericMessage = { ...decodedMsg, ...genericMessage }
+    genericMessage = { ...meta, ...genericMessage }
   } else {
     genericMessage = { type: 'unknown' }
   }
 
   return genericMessage
+}
+
+function decodeMsgAllowance(msg: MsgGrantAllowance): any {
+  const { allowance, ...rest } = msg
+  return {
+    allowance: {
+      ...rest,
+      allowance: allowance ? decodeMessage(allowance) : undefined,
+    },
+  }
 }
