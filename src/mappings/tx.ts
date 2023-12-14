@@ -12,7 +12,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   for (const { typeUrl, value } of tx.decodedTx.body.messages) {
     const knownType = registry.lookupType(typeUrl)
 
-    if (!knownType || toJson(knownType) == '{}') {
+    if (!knownType || JSON.stringify(knownType) === '{}') {
       const unknownMsgType = { type: typeUrl, blocks: [height] }
       addToUnknownMessageTypes(unknownMsgType)
 
