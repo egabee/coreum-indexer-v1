@@ -1,8 +1,8 @@
 import { CosmosTransaction } from '@subql/types-cosmos'
 import { toJson, addToUnknownMessageTypes } from '../common/utils'
 import { createTransactionObject, handleMessageType } from './helper'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
-import { TOPIC_MESSAGE } from '../common/constants'
+// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+// import { TOPIC_MESSAGE } from '../common/constants'
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const height = tx.block.header.height
@@ -24,18 +24,18 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
 
     try {
       const decodedMsg = knownType.decode(value)
-
-      const fullMsg = handleMessageType(decodedMsg, { typeUrl, value }, height)
+      const fullMsg = handleMessageType(decodedMsg, height, { typeUrl, value })
       txMessages.push(fullMsg)
     } catch (error) {
       throw error // throw the error to stop the indexer
     }
   }
 
-  const transaction = createTransactionObject(tx)
-  transaction.messages = txMessages
+  // const transaction = createTransactionObject(tx)
+  // transaction.messages = txMessages
 
-  await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
+  // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
 
-  logger.info(`Full tx: ${toJson(transaction)}`)
+  logger.info(`Full tx: ${toJson(txMessages)}`)
+  // logger.info(`and this is the old ${toJson(transaction)}`)
 }
