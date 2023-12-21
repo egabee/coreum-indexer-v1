@@ -1,24 +1,24 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { addToUnknownMessageTypes, decodeBase64IfEncoded, getTimestamp } from '../common/utils'
-import { CosmosDecodedMessage, DecodedMessage, EventLog, GenericMessage, TransactionObject } from './interfaces'
-import { MsgGrantAllowance } from '../types/proto-interfaces/cosmos/feegrant/v1beta1/tx'
+import { addToUnknownMessageTypes, decodeBase64IfEncoded, getTimestamp, toJson } from '../common/utils'
+import { DecodedMessage, EventLog, GenericMessage, TransactionObject } from './interfaces'
+import { error } from 'console'
 
 const textDecoder = new TextDecoder('utf-8')
 
 export function createTransactionObject(cosmosTx: CosmosTransaction): TransactionObject {
   const { tx, block } = cosmosTx
-
+  
   const events: EventLog[] = tx.events.map(({ type, attributes }: any) => ({
     type,
     attributes: attributes.map(({ key, value }: any) => ({
-      key: decodeBase64IfEncoded(key),
-      value: decodeBase64IfEncoded(value),
+      key: key,
+      value: value,
     })),
   }))
-
   return {
     id: cosmosTx.hash,
     events: events,
@@ -38,63 +38,116 @@ export function createTransactionObject(cosmosTx: CosmosTransaction): Transactio
  * @param typeUrl
  * @returns
  */
-export function decodeMessage({ value, typeUrl }: ProtoAny, block?: number): DecodedMessage {
+export function decodeMessage(value: any, typeUrl: string, block?: number): DecodedMessage {
   const msgType = registry.lookupType(typeUrl)
-
+  
   if (!msgType) {
     addToUnknownMessageTypes({ type: typeUrl, blocks: [block!] })
-    logger.info(`Detect a not registered proto type ${typeUrl}`)
+    // logger.info(`Detect a not registered proto type ${typeUrl}`)
     return { type: typeUrl }
   }
 
-  return { type: typeUrl, ...msgType.decode(value) }
+  if (msgType.decode) {
+    // else decode msg if can and back the type,value
+    const decMsg = msgType.decode(value)
+    // not right will deleted soon (bcz it become binary bcz the type not added (proto type))
+    const fmsg = decMsg !== undefined ? { ...decMsg } : undefined
+    return { type: typeUrl, value: fmsg }
+  }
+
+  // Handle cases where msgType.decode is not available
+  // ----------------------- [ if array ] -------------------
+  if (Array.isArray(value)) {
+    const decodeArr: any = []
+    decodeArr.push(value.map((item, index) => decodeMessage(item, typeUrl, block)))
+    return decodeArr
+  }
+  // ------------------------ {if object}
+  if (typeof value === 'object') {
+    const decodedObject: any = {}
+    for (const key in value) {
+      decodedObject[key] = decodeMessage(value[key], typeUrl, block)
+    }
+    return decodedObject
+  }
+
+  return { type: typeUrl, value }
+}
+/**
+ * function to decode and handle different types of messages
+ @param decodedMsg
+ * @param block
+ * @returns
+ */
+// make a recursive function that keep decode any (obj,arr, simple base() ...)
+function handleMessageTypeRecursive(decodedMsg: any, block: number, message?: any): GenericMessage | GenericMessage[] {
+  const Msg = message
+  // check if this is array (recursive it to handel each element)
+  if (Array.isArray(decodedMsg)) {
+    // If it's an array, recursively handle each element
+    return decodedMsg.flatMap((item) => handleMessageTypeRecursive(item, block, Msg));
+  }
+  // check if this obj we will search for the type and then loop on keys(attributes)
+  //  and we will loop on all attributes
+  else if (decodedMsg && typeof decodedMsg === 'object') {
+    // If it's an object, process each key-value pair
+    if (decodedMsg['@type'] || decodedMsg.$type?.name) {
+      const genericMessage: GenericMessage = {
+        type: message?.typeUrl || decodedMsg['@type'] || decodedMsg.$type?.name || 'unknown',
+      }
+
+      // on every iteration (in key) we will see the field and check if they encoded in base64
+      // or not and change in the place of each field
+      // and see if value or type faced send to decode again or for recursive
+      for (const field of Object.keys(decodedMsg)) {
+        if (field === 'value') {
+          genericMessage[field] = decodeMessage(decodedMsg[field], decodedMsg.typeUrl, block)
+        } else if (field === '@type' || (field === '$type' && decodedMsg['$type'].name)) {
+          // -------------------------- decodedMsg[field] ------------------------
+          genericMessage.type = decodedMsg['field']
+        } else if (!isNaN(parseInt(field))) {
+          // Convert numeric keys to an array
+          genericMessage.msg = genericMessage.msg || []
+          genericMessage.msg.push(handleMessageTypeRecursive(decodedMsg[field], block))
+        } else {
+          genericMessage[field] = handleMessageTypeRecursive(decodedMsg[field], block)
+        }
+
+        // logger.info(`thsi is generic ===== ${toJson(genericMessage)}`)
+      }
+
+      return genericMessage
+    } else {
+      // decodedMsg = decodedMsg ? (Array.isArray(decodedMsg) ? String.fromCharCode(...decodedMsg) : decodedMsg) : Msg
+      decodedMsg = Array.isArray(decodedMsg) ? textDecoder.decode(Uint8Array.from(decodedMsg)) : Msg;
+
+
+      return decodedMsg
+    }
+  } else {
+    // Base case -> return the value for non-object types
+    // logger.info(`Base case ${decodedMsg}`)
+    return decodedMsg
+  }
 }
 
 /**
- * function to decode and handle different types of messages
+ * Main function to decode and handle different types of messages
  * @param decodedMsg
  * @param message
+ * @param block
  * @returns
  */
-export function handleMessageType(decodedMsg: CosmosDecodedMessage, message: ProtoAny, block: number): GenericMessage {
-  const { clientMessage, msgs, msg, allowance, ...meta } = decodedMsg
-
-  // Check if any of the expected properties (msg, msgs, clientMessage, allowance) exist
-  const hasMessageProperty = Boolean(msg || msgs || clientMessage || allowance)
-
-  let genericMessage: GenericMessage = { type: message.typeUrl }
-
-  if (msgs) {
-    const messageList = msgs as ProtoAny[]
-    const decodedMsgs = messageList.map(({ typeUrl, value }) => decodeMessage({ value, typeUrl }, block))
-    genericMessage = { msgs: decodedMsgs, ...meta, ...genericMessage }
-  } else if (msg) {
-    genericMessage = { msg: JSON.parse(textDecoder.decode(msg)), ...meta, ...genericMessage }
-  } else if (clientMessage) {
-    const { typeUrl, value } = clientMessage
-    genericMessage = { clientMessage: decodeMessage({ value, typeUrl }, block), ...meta, ...genericMessage }
-  } else if (allowance) {
-    const decodedAllowance = decodeMessage(allowance) as unknown as MsgGrantAllowance
-    genericMessage = {
-      ...decodeMsgAllowance(decodedAllowance),
-      ...meta,
-      ...genericMessage,
-    }
-  } else if (!hasMessageProperty) {
-    genericMessage = { ...meta, ...genericMessage }
-  } else {
-    genericMessage = { type: 'unknown' }
-  }
-
-  return genericMessage
-}
-
-function decodeMsgAllowance(msg: MsgGrantAllowance): any {
-  const { allowance, ...rest } = msg
-  return {
-    allowance: {
-      ...rest,
-      allowance: allowance ? decodeMessage(allowance) : undefined,
-    },
+export function handleMessageType(
+  decodedMsg: any,
+  block: number,
+  message?: ProtoAny,
+): GenericMessage | GenericMessage[] {
+  try {
+    return handleMessageTypeRecursive(decodedMsg, block, message)
+  } catch (error) {
+    // Handle errors as needed
+    logger.info(`Error handling message: ${error}`)
+    return { type: 'error' }
   }
 }
