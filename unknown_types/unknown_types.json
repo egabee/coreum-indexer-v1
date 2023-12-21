@@ -1,0 +1,9 @@
+[
+  {
+    "type": "/cosmos.staking.v1beta1.StakeAuthorization",
+    "heights": [
+      13032304,
+      13032311
+    ]
+  }
+]
