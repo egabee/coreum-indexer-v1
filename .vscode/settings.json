@@ -2,19 +2,20 @@
   "editor.formatOnPaste": true,
   "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "peacock.remoteColor": "#91d9e6",
   "workbench.colorCustomizations": {
-    "activityBar.activeBackground": "#bbe7ef",
-    "activityBar.background": "#bbe7ef",
+    "activityBar.activeBackground": "#ceb00c",
+    "activityBar.background": "#ceb00c",
     "activityBar.foreground": "#15202b",
     "activityBar.inactiveForeground": "#15202b99",
-    "activityBarBadge.background": "#db64c8",
-    "activityBarBadge.foreground": "#15202b",
-    "sash.hoverBorder": "#bbe7ef",
-    "statusBar.background": "#91d9e6",
-    "statusBar.foreground": "#15202b",
-    "statusBarItem.hoverBackground": "#67cbdd",
-    "statusBarItem.remoteBackground": "#91d9e6",
-    "statusBarItem.remoteForeground": "#15202b"
+    "activityBarBadge.background": "#077867",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "sash.hoverBorder": "#ceb00c",
+    "statusBar.background": "#9e8709",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBarItem.hoverBackground": "#ceb00c",
+    "statusBarItem.remoteBackground": "#9e8709",
+    "statusBarItem.remoteForeground": "#e7e7e7"
   },
-  "peacock.remoteColor": "#91d9e6"
+  "peacock.color": "#9e8709"
 }
