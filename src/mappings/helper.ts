@@ -5,20 +5,20 @@ import { TextDecoder } from 'util'
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
 import { addToUnknownMessageTypes, decodeBase64IfEncoded, getTimestamp, toJson } from '../common/utils'
 import { DecodedMessage, EventLog, GenericMessage, TransactionObject } from './interfaces'
+import { error } from 'console'
 
 const textDecoder = new TextDecoder('utf-8')
 
 export function createTransactionObject(cosmosTx: CosmosTransaction): TransactionObject {
   const { tx, block } = cosmosTx
-
+  
   const events: EventLog[] = tx.events.map(({ type, attributes }: any) => ({
     type,
     attributes: attributes.map(({ key, value }: any) => ({
-      key: decodeBase64IfEncoded(key),
-      value: decodeBase64IfEncoded(value),
+      key: key,
+      value: value,
     })),
   }))
-
   return {
     id: cosmosTx.hash,
     events: events,
@@ -40,7 +40,7 @@ export function createTransactionObject(cosmosTx: CosmosTransaction): Transactio
  */
 export function decodeMessage(value: any, typeUrl: string, block?: number): DecodedMessage {
   const msgType = registry.lookupType(typeUrl)
-
+  
   if (!msgType) {
     addToUnknownMessageTypes({ type: typeUrl, blocks: [block!] })
     // logger.info(`Detect a not registered proto type ${typeUrl}`)
@@ -85,7 +85,7 @@ function handleMessageTypeRecursive(decodedMsg: any, block: number, message?: an
   // check if this is array (recursive it to handel each element)
   if (Array.isArray(decodedMsg)) {
     // If it's an array, recursively handle each element
-    return decodedMsg.map((item) => handleMessageTypeRecursive(item, block, Msg))
+    return decodedMsg.flatMap((item) => handleMessageTypeRecursive(item, block, Msg));
   }
   // check if this obj we will search for the type and then loop on keys(attributes)
   //  and we will loop on all attributes
@@ -105,8 +105,7 @@ function handleMessageTypeRecursive(decodedMsg: any, block: number, message?: an
         } else if (field === '@type' || (field === '$type' && decodedMsg['$type'].name)) {
           // -------------------------- decodedMsg[field] ------------------------
           genericMessage.type = decodedMsg['field']
-          logger.info(`test somthing what is the ${decodedMsg['type']}`)
-        } else if (!isNaN(parseInt(field, 10))) {
+        } else if (!isNaN(parseInt(field))) {
           // Convert numeric keys to an array
           genericMessage.msg = genericMessage.msg || []
           genericMessage.msg.push(handleMessageTypeRecursive(decodedMsg[field], block))
@@ -120,7 +119,8 @@ function handleMessageTypeRecursive(decodedMsg: any, block: number, message?: an
       return genericMessage
     } else {
       // decodedMsg = decodedMsg ? (Array.isArray(decodedMsg) ? String.fromCharCode(...decodedMsg) : decodedMsg) : Msg
-      decodedMsg = Array.isArray(decodedMsg) ? String.fromCharCode(...decodedMsg) : Msg
+      decodedMsg = Array.isArray(decodedMsg) ? textDecoder.decode(Uint8Array.from(decodedMsg)) : Msg;
+
 
       return decodedMsg
     }
