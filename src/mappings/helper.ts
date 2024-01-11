@@ -104,7 +104,7 @@ function handleMessageTypeRecursive(decodedMsg: any, block: number, message?: an
           genericMessage[field] = decodeMessage(decodedMsg[field], decodedMsg.typeUrl, block)
         } else if (field === '@type' || (field === '$type' && decodedMsg['$type'].name)) {
           // -------------------------- decodedMsg[field] ------------------------
-          genericMessage.type = decodedMsg['field']
+          genericMessage.type = decodedMsg[field]
         } else if (!isNaN(parseInt(field))) {
           // Convert numeric keys to an array
           genericMessage.msg = genericMessage.msg || []

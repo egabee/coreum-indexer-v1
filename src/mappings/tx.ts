@@ -30,11 +30,10 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
       throw error // throw the error to stop the indexer
     }
   }
-
   const transaction = createTransactionObject(tx)
   transaction.messages = txMessages
 
-  await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
+  // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
 
-  logger.info(`Full tx: ${toJson(txMessages)}`)
+  logger.info(`Full tx: ${toJson(transaction)}`)
 }
