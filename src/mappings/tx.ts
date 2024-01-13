@@ -62,6 +62,11 @@ function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, bl
     decodedMessage.clientMessage = tryDecodeMessage(decodedMessage.clientMessage as ProtoAny, block)
   }
 
+  if (typeUrl === '/cosmos.authz.v1beta1.MsgGrant') {
+    const authorization = tryDecodeMessage(decodedMessage.grant.authorization as ProtoAny, block)
+    decodedMessage.grant = { ...decodedMessage.grant, authorization }
+  }
+
   if (typeUrl === '/cosmos.authz.v1beta1.MsgExec') {
     const msgs = []
     for (const msg of decodedMessage.msgs) {
@@ -84,7 +89,7 @@ function tryDecodeMessage({ typeUrl, value }: ProtoAny, block: number): any {
 
   if (!knownType || isEmptyStringObject(knownType)) {
     addToUnknownMessageTypes({ type: typeUrl, blocks: [block] })
-    throw new Error('Unknown type detected')
+    throw new Error(`Unknown type detected. Type url: ${typeUrl}`)
   }
 
   try {
