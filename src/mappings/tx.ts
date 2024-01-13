@@ -58,14 +58,14 @@ function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, bl
     decodedMessage.clientState = tryDecodeMessage(decodedMessage.clientState as ProtoAny, block)
   }
 
+  if (typeUrl === '/ibc.core.client.v1.MsgUpdateClient') {
+    decodedMessage.clientMessage = tryDecodeMessage(decodedMessage.clientMessage as ProtoAny, block)
+  }
+
   if (typeUrl === '/cosmos.authz.v1beta1.MsgExec') {
     const msgs = []
     for (const msg of decodedMessage.msgs) {
-      const decodedMsg = tryDecodeMessage(msg, block)
-
-      if (decodedMsg) {
-        msgs.push({ ...decodedMsg, type: msg.typeUrl })
-      }
+      msgs.push(tryDecodeMessage(msg, block))
     }
     decodedMessage.msgs = msgs
   }
@@ -84,11 +84,11 @@ function tryDecodeMessage({ typeUrl, value }: ProtoAny, block: number): any {
 
   if (!knownType || isEmptyStringObject(knownType)) {
     addToUnknownMessageTypes({ type: typeUrl, blocks: [block] })
-    return
+    throw new Error('Unknown type detected')
   }
 
   try {
-    return knownType.decode(value)
+    return { ...knownType.decode(value), type: typeUrl }
   } catch (error) {
     logger.error(error, `Failed to decode message`)
     throw error
