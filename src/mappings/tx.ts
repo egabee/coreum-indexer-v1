@@ -55,7 +55,7 @@ function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, bl
   }
 
   if (typeUrl === '/ibc.core.client.v1.MsgCreateClient') {
-    decodedMessage.clientMessage = tryDecodeMessage(decodedMessage.clientMessage as ProtoAny, block)
+    decodedMessage.clientState = tryDecodeMessage(decodedMessage.clientState as ProtoAny, block)
   }
 
   if (typeUrl === '/cosmos.authz.v1beta1.MsgExec') {
