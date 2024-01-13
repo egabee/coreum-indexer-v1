@@ -1,40 +1,128 @@
 import { CosmosTransaction } from '@subql/types-cosmos'
-import { toJson, addToUnknownMessageTypes } from '../common/utils'
-import { createTransactionObject, handleMessageType } from './helper'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+import { TextDecoder } from 'util'
+
+import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
 import { TOPIC_MESSAGE } from '../common/constants'
+import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+import { addToUnknownMessageTypes, isEmptyStringObject } from '../common/utils'
+import { EventLog, GenericMessage, TransactionObject } from './interfaces'
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
-  const height = tx.block.header.height
+  const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
 
-  const txMessages = []
+  const messages: GenericMessage[] = []
 
   for (const { typeUrl, value } of tx.decodedTx.body.messages) {
     const knownType = registry.lookupType(typeUrl)
 
-    if (!knownType || JSON.stringify(knownType) === '{}') {
-      const unknownMsgType = { type: typeUrl, blocks: [height] }
-      addToUnknownMessageTypes(unknownMsgType)
-
-      logger.info(`%%%%%%%%%% UnknownType detected %%%%%%%%% ${toJson(unknownMsgType)} `)
-
+    if (!knownType || isEmptyStringObject(knownType)) {
+      addToUnknownMessageTypes({ type: typeUrl, blocks: [height] })
       continue
     }
 
     try {
-      const decodedMsg = knownType.decode(value)
-      const fullMsg = handleMessageType(decodedMsg, height, { typeUrl, value })
-      txMessages.push(fullMsg)
+      const decodedMessage = decodeNestedMessages(knownType.decode(value), { typeUrl, value }, height)
+      messages.push(decodedMessage)
     } catch (error) {
       throw error // throw the error to stop the indexer
     }
   }
 
-  const transaction = createTransactionObject(tx)
-  transaction.messages = txMessages
-
+  const transaction = createTransactionObject(tx, messages)
   await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
+  logger.info(`Full tx: ${JSON.stringify(transaction)}`)
+}
 
-  logger.info(`Full tx: ${toJson(txMessages)}`)
+/**
+ * Decode nested messages if any
+ * @param decodedMessage any
+ * @param originalMessage ProtoAny
+ * @param block number
+ * @returns GenericMessage
+ */
+function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, block: number): GenericMessage {
+  const { typeUrl } = originalMessage
+
+  if (
+    [
+      '/cosmwasm.wasm.v1.MsgExecuteContract',
+      '/cosmwasm.wasm.v1.MsgMigrateContract',
+      '/cosmwasm.wasm.v1.MsgInstantiateContract',
+    ].includes(typeUrl)
+  ) {
+    decodedMessage.msg = JSON.parse(new TextDecoder().decode(Buffer.from(decodedMessage.msg)))
+  }
+
+  if (typeUrl === '/ibc.core.client.v1.MsgCreateClient') {
+    decodedMessage.clientMessage = tryDecodeMessage(decodedMessage.clientMessage as ProtoAny, block)
+  }
+
+  if (typeUrl === '/cosmos.authz.v1beta1.MsgExec') {
+    const msgs = []
+    for (const msg of decodedMessage.msgs) {
+      const m = tryDecodeMessage(msg, block)
+      if (m !== undefined) {
+        msgs.push(m)
+      }
+    }
+    decodedMessage.msgs = msgs
+  }
+
+  return { ...decodedMessage, type: typeUrl }
+}
+
+/**
+ * Try to decode message if can't decode then returns undefined
+ * @param param0 ProtoAny
+ * @param block number
+ * @returns any | undefined
+ */
+function tryDecodeMessage({ typeUrl, value }: ProtoAny, block: number): any {
+  const knownType = registry.lookupType(typeUrl)
+
+  if (!knownType || isEmptyStringObject(knownType)) {
+    addToUnknownMessageTypes({ type: typeUrl, blocks: [block] })
+    return
+  }
+
+  try {
+    return knownType.decode(value)
+  } catch (error) {
+    logger.error(error, `Failed to decode message`)
+    throw error
+  }
+}
+
+/**
+ * Creates a transaction object from input paramaters. Messages and events are decoded.
+ * @param cosmosTx CosmosTransaction
+ * @param messages GenericMessage[]
+ * @returns TransactionObject
+ */
+function createTransactionObject(cosmosTx: CosmosTransaction, messages: GenericMessage[]): TransactionObject {
+  const {
+    tx: { events, gasUsed, gasWanted, log, code },
+    block: { header },
+  } = cosmosTx
+
+  const txEvents: EventLog[] = events.map(({ type, attributes }: any) => ({
+    type,
+    attributes: attributes.map(({ key, value }: any) => ({
+      key: key,
+      value: value,
+    })),
+  }))
+
+  return {
+    id: cosmosTx.hash,
+    events: txEvents,
+    messages,
+    log,
+    gasUsed: gasUsed.toString(),
+    gasWanted: gasWanted.toString(),
+    success: code === 0,
+    blockNumber: header.height,
+    timestamp: BigInt(header.time.valueOf()).toString(),
+  }
 }
