@@ -61,9 +61,10 @@ function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, bl
   if (typeUrl === '/cosmos.authz.v1beta1.MsgExec') {
     const msgs = []
     for (const msg of decodedMessage.msgs) {
-      const m = tryDecodeMessage(msg, block)
-      if (m !== undefined) {
-        msgs.push(m)
+      const decodedMsg = tryDecodeMessage(msg, block)
+
+      if (decodedMsg) {
+        msgs.push({ ...decodedMsg, type: msg.typeUrl })
       }
     }
     decodedMessage.msgs = msgs
