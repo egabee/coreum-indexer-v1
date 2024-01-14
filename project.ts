@@ -455,6 +455,13 @@ const project: CosmosProject = {
         },
       ],
       [
+        'cosmos.staking.v1beta1.authz',
+        {
+          file: './proto/cosmos/staking/v1beta1/authz.proto',
+          messages: ['StakeAuthorization', 'AuthorizationType'],
+        },
+      ],
+      [
         'cosmos.staking.v1beta1.staking',
         {
           file: './proto/cosmos/staking/v1beta1/staking.proto',
