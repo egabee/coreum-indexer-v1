@@ -378,6 +378,10 @@ const project: CosmosProject = {
         },
       ],
       // =====================================================
+      // ----------------------- ics23 --------------------
+      // =====================================================
+      ['cosmos.ics23.v1', { file: './proto/cosmos/ics23/v1/proofs.proto', messages: ['ProofSpec'] }],
+      // =====================================================
       // ----------------------- mint --------------------
       // =====================================================
       [
@@ -448,6 +452,13 @@ const project: CosmosProject = {
             'MsgCancelUnbondingDelegation',
             'MsgUpdateParams',
           ],
+        },
+      ],
+      [
+        'cosmos.staking.v1beta1.authz',
+        {
+          file: './proto/cosmos/staking/v1beta1/authz.proto',
+          messages: ['StakeAuthorization', 'AuthorizationType'],
         },
       ],
       [
@@ -1047,6 +1058,7 @@ const project: CosmosProject = {
         },
       ],
       ['google.protobuf.Any', { file: './proto/google/protobuf/any.proto', messages: ['Any'] }],
+      ['google.protobuf.Duration', { file: './proto/google/protobuf/duration.proto', messages: ['Duration'] }],
       ['google.protobuf.Timestamp', { file: './proto/google/protobuf/timestamp.proto', messages: ['Timestamp'] }],
 
       // =======================================================

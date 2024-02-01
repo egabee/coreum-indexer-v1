@@ -4,7 +4,7 @@ type Any = Record<string, any>
 
 export interface GenericMessage {
   [key: string]: any
-  type?: string
+  type: string
   msg?: Any[]
   msgs?: Any[]
   clientMessage?: Any

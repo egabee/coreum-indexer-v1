@@ -25,10 +25,20 @@ export function decodeBase64IfEncoded(input: string): string {
   return isBase64(input) ? Buffer.from(input, 'base64').toString() : input
 }
 
+/**
+ * Convert input to string using `JSON.stringify` and compare it with `'{}'`
+ * @param input any
+ * @returns boolean
+ */
+export function isEmptyStringObject(input: any): boolean {
+  return JSON.stringify(input) === '{}'
+}
+
 const jsonFilePath = '/app/unknown_types/unknown_types.json'
 
 export function addToUnknownMessageTypes(newEntry: UnknownMessageType): void {
-  logger.info(`this is ========>> ${toJson(newEntry)}`)
+  logger.info(`%%%%%%%%%% UnknownType detected %%%%%%%%% ${toJson(newEntry)} `)
+
   let data: any = []
   const jsonData = fs.readFileSync(jsonFilePath, 'utf-8')
   if (jsonData) {
