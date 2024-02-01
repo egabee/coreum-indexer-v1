@@ -62,6 +62,10 @@ function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, bl
     decodedMessage.clientMessage = tryDecodeMessage(decodedMessage.clientMessage as ProtoAny, block)
   }
 
+  if (typeUrl === '/ibc.core.channel.v1.MsgAcknowledgement') {
+    decodedMessage.packet.data = JSON.parse(new TextDecoder().decode(Buffer.from(decodedMessage.packet.data)))
+  }
+
   if (typeUrl === '/cosmos.authz.v1beta1.MsgGrant') {
     const authorization = tryDecodeMessage(decodedMessage.grant.authorization as ProtoAny, block)
     decodedMessage.grant = { ...decodedMessage.grant, authorization }
