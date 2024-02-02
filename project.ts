@@ -29,6 +29,7 @@ const project: CosmosProject = {
           {
             handler: 'handleTx',
             kind: CosmosHandlerKind.Transaction,
+            filter: { includeFailedTx: true },
           },
         ],
       },
