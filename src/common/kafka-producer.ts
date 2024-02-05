@@ -32,12 +32,11 @@ export async function sendBatchOfMessagesToKafka({ message, topic }: Transaction
   if (!producerConnected) {
     await connectProducer()
   }
-
   try {
     const messageResults = await producer.sendBatch({
       topicMessages: [
         {
-          messages: [{ value: JSON.stringify({ ...message, chainId: process.env.CHAIN_ID }) }],
+          messages: [{ value: toJson({ ...message, chainId: process.env.CHAIN_ID }) }],
           topic,
         },
       ],
@@ -60,7 +59,6 @@ async function sendFailureReport({ topic, message }: TransactionTopic): Promise<
   if (!producerConnected) {
     await connectProducer()
   }
-
   try {
     const messageResults = await producer.sendBatch({
       topicMessages: [
