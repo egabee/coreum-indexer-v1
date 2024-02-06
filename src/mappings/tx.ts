@@ -4,7 +4,7 @@ import { TextDecoder } from 'util'
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
 import { TOPIC_MESSAGE } from '../common/constants'
 import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
-import { addToUnknownMessageTypes, isEmptyStringObject } from '../common/utils'
+import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
 import { EventLog, GenericMessage, TransactionObject } from './interfaces'
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
@@ -31,7 +31,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
 
   const transaction = createTransactionObject(tx, messages)
   await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
-  logger.info(`Full tx: ${JSON.stringify(transaction)}`)
+  logger.info(`Full tx: ${toJson(transaction)}`)
 }
 
 /**
@@ -63,6 +63,10 @@ function decodeNestedMessages(decodedMessage: any, originalMessage: ProtoAny, bl
   }
 
   if (typeUrl === '/ibc.core.channel.v1.MsgAcknowledgement') {
+    decodedMessage.packet.data = JSON.parse(new TextDecoder().decode(Buffer.from(decodedMessage.packet.data)))
+  }
+
+  if (typeUrl === '/ibc.core.channel.v1.MsgRecvPacket') {
     decodedMessage.packet.data = JSON.parse(new TextDecoder().decode(Buffer.from(decodedMessage.packet.data)))
   }
 

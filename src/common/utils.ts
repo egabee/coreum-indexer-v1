@@ -2,13 +2,14 @@ import { CosmosBlock, CosmosTransaction } from '@subql/types-cosmos'
 import isBase64 from 'is-base64'
 import * as fs from 'fs'
 import { UnknownMessageType } from '../mappings/interfaces'
+import Long from 'long'
 
 export function getTimestamp(block: CosmosBlock): bigint {
   return BigInt(block.header.time.valueOf())
 }
 
 export function toJson(o: any): string {
-  return JSON.stringify(o, (_, v) => (typeof v === 'bigint' ? v.toString() : v)).replace(/\\/g, '')
+  return JSON.stringify(o, (_, v) => (Long.isLong(v) ? v.toString() : v))
 }
 
 export function isTransactionSuccessful(tx: CosmosTransaction): boolean {
