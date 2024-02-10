@@ -102,6 +102,13 @@ const project: CosmosProject = {
           messages: ['Input', 'Output', 'Params', 'SendEnabled', 'Supply', 'DenomUnit', 'Metadata'],
         },
       ],
+      [
+        'cosmos.bank.v1beta1.authz',
+        {
+          file: './proto/cosmos/bank/v1beta1/authz.proto',
+          messages: ['SendAuthorization'],
+        },
+      ],
       // =====================================================
       //------------------------ base ------------------------
       // =====================================================
