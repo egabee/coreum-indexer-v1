@@ -7,17 +7,15 @@ import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
 import { addToUnknownMessageTypes, isEmptyStringObject /*toJson*/ } from '../common/utils'
 import { EventLog, GenericMessage, TransactionObject } from './interfaces'
 
-import { IggyProducer, iggyProducerPromise } from '../common/iggy-producer'
+import { IggyProducer } from '../common/iggy-producer'
 
 let iggyProducer: IggyProducer
 
-  // eslint-disable-next-line
-;(async () => {
-  iggyProducer = await iggyProducerPromise
-  // Use iggyProducer directly here
-})()
-
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
+  if (!iggyProducer) {
+    iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
+  }
+
   const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
   logger.info(`${JSON.stringify(tx.decodedTx)}`)
