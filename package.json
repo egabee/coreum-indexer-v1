@@ -48,6 +48,7 @@
     "is-base64": "^1.1.0",
     "kafkajs": "^2.2.4",
     "long": "^5.2.3",
+    "node-fetch": "^3.3.2",
     "pino": "^7.11.0",
     "protobufjs": "^7.2.5",
     "ts-proto": "^1.164.0",

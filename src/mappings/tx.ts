@@ -6,15 +6,18 @@ import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
 // import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 import { addToUnknownMessageTypes, isEmptyStringObject /*toJson*/ } from '../common/utils'
 import { EventLog, GenericMessage, TransactionObject } from './interfaces'
+import fetch from 'node-fetch'
 
-import { IggyProducer } from '../common/iggy-producer'
+// import { IggyProducer } from '../common/iggy-producer'
 
-let iggyProducer: IggyProducer
+// let iggyProducer: IggyProducer
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
-  if (!iggyProducer) {
-    iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
-  }
+  const response = await fetch('https://full-node.mainnet-1.coreum.dev:26657/status')
+  console.log(await response.json())
+  // if (!iggyProducer) {
+  //   iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
+  // }
 
   const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
@@ -39,8 +42,8 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
     }
   }
 
-  const transaction = createTransactionObject(tx, messages)
-  await iggyProducer.postMessage(transaction)
+  createTransactionObject(tx, messages)
+  // await iggyProducer.postMessage(transaction)
   // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
   // logger.info(`Full tx: ${toJson(transaction)}`)
 }
