@@ -1,11 +1,11 @@
-import xior from 'xior'
+import axios from 'axios'
 import { TransactionObject } from '../mappings/interfaces'
 
 function currentTimestampInSeconds(): number {
   return Math.floor(Date.now() / 1000)
 }
 
-const xiorInstance = xior.create()
+const axiosInstance = axios.create({ adapter: 'http' })
 
 export class IggyProducer {
   private authTokens: {
@@ -43,10 +43,11 @@ export class IggyProducer {
   }
 
   private async login(): Promise<void> {
-    const response = await xiorInstance.post(
+    const response = await axiosInstance.post(
       `${this.url}/users/login`,
       { username: 'iggy', password: 'iggy' },
       {
+        adapter: 'http',
         headers: { 'Content-Type': 'application/json' },
       },
     )
@@ -66,7 +67,7 @@ export class IggyProducer {
   }
 
   private async createStream(stream_id = 1, name = 'stream1'): Promise<void> {
-    const response = await xiorInstance.post(
+    const response = await axiosInstance.post(
       `${this.url}/streams`,
       {
         stream_id,
@@ -79,7 +80,7 @@ export class IggyProducer {
   }
 
   private async createTopic(stream_id = 1, topic_id = 1, name = 'topic1'): Promise<void> {
-    const response = await xiorInstance.post(
+    const response = await axiosInstance.post(
       `${this.url}/streams/${stream_id}/topics`,
       {
         topic_id,
@@ -99,7 +100,7 @@ export class IggyProducer {
       await this.login()
     }
 
-    const response = await xiorInstance.post(
+    const response = await axiosInstance.post(
       `${this.url}/streams/1/topics/1/messages`,
       {
         partitioning: {
@@ -148,7 +149,7 @@ export class IggyProducer {
 // }
 
 // async function createStream(stream_id = 1, name = 'stream1'): Promise<void> {
-//   const response = await xiorInstance.post(
+//   const response = await axiosInstance.post(
 //     `http://127.0.0.1:3000/streams`,
 //     {
 //       stream_id,
@@ -163,7 +164,7 @@ export class IggyProducer {
 // }
 
 // async function createTopic(stream_id = 1, topic_id = 1, name = 'topic1'): Promise<void> {
-//   const response = await xiorInstance.post(
+//   const response = await axiosInstance.post(
 //     `http://127.0.0.1:3000/streams/${stream_id}/topics`,
 //     {
 //       topic_id,
@@ -181,7 +182,7 @@ export class IggyProducer {
 // }
 
 // async function login(): Promise<void> {
-//   const response = await xiorInstance.post(
+//   const response = await axiosInstance.post(
 //     `http://127.0.0.1:3000/users/login`,
 //     { username: 'iggy', password: 'iggy' },
 //     {
@@ -205,7 +206,7 @@ export class IggyProducer {
 //     await login()
 //   }
 
-//   const response = await xiorInstance.post(
+//   const response = await axiosInstance.post(
 //     `http://127.0.0.1:3000/streams/1/topics/1/messages`,
 //     {
 //       partitioning: {
@@ -246,7 +247,7 @@ export class IggyProducer {
 //   while (i < 1000) {
 //     i++
 
-//     const response = await xiorInstance.post(
+//     const response = await axiosInstance.post(
 //       `http://127.0.0.1:3000/streams/1/topics/1/messages`,
 //       {
 //         partitioning: {
@@ -278,7 +279,7 @@ export class IggyProducer {
 //       },
 //     )
 
-//     // const response = await xiorInstance({
+//     // const response = await axiosInstance({
 //     //   method: 'POST',
 //     //   url: `http://127.0.0.1:3000/streams/1/topics/1/messages`,
 //     //   headers: {
