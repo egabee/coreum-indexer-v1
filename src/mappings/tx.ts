@@ -2,14 +2,26 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { TOPIC_MESSAGE } from '../common/constants'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
-import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
+// import { TOPIC_MESSAGE } from '../common/constants'
+// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+import { addToUnknownMessageTypes, isEmptyStringObject /*toJson*/ } from '../common/utils'
 import { EventLog, GenericMessage, TransactionObject } from './interfaces'
+
+import { IggyProducer, iggyProducerPromise } from '../common/iggy-producer'
+
+let iggyProducer: IggyProducer
+
+  // eslint-disable-next-line
+;(async () => {
+  iggyProducer = await iggyProducerPromise
+  // Use iggyProducer directly here
+})()
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
+  logger.info(`${JSON.stringify(tx.decodedTx)}`)
+  logger.info(`${JSON.stringify(tx.tx)}`)
 
   const messages: GenericMessage[] = []
 
@@ -30,8 +42,9 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   }
 
   const transaction = createTransactionObject(tx, messages)
-  await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
-  logger.info(`Full tx: ${toJson(transaction)}`)
+  await iggyProducer.postMessage(transaction)
+  // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
+  // logger.info(`Full tx: ${toJson(transaction)}`)
 }
 
 /**
