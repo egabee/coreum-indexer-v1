@@ -38,6 +38,9 @@ export class IggyProducer {
     const producer = new IggyProducer(url)
     await producer.login()
 
+    await producer.createStream()
+    await producer.createTopic()
+
     return producer
   }
 
@@ -87,6 +90,10 @@ export class IggyProducer {
       name,
     })
 
+    if (data && status === 400 && data.code === 'stream_name_already_exists') {
+      return
+    }
+
     if (data && status === 201) {
       throw new Error(`Failed to create stream. Reason: ${data} got status ${status}`)
     }
@@ -100,8 +107,11 @@ export class IggyProducer {
       name,
       replication_factor: 1,
       partitions_count: 3,
-      message_expiry: 0,
     })
+
+    if (data && status === 400 && data.code === 'topic_name_already_exists') {
+      return
+    }
 
     if (data && status === 201) {
       throw new Error(`Failed to create stream. Reason: ${data} got status ${status}`)
