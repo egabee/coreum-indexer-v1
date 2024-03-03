@@ -17,8 +17,6 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
 
   const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
-  logger.info(`${JSON.stringify(tx.decodedTx)}`)
-  logger.info(`${JSON.stringify(tx.tx)}`)
 
   const messages: GenericMessage[] = []
 
