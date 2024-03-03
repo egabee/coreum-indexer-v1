@@ -42,32 +42,18 @@ export class IggyProducer {
     return producer
   }
 
-  async apiCall(endpoint: string, method: string, body?: any, headers?: any): Promise<{ data: any; status: number }> {
-    try {
-      const response = await fetch(`${this.url}${endpoint}`, {
-        method,
-        body: JSON.stringify(body),
-        headers: headers || this.requestHeaders,
-      })
-
-      const data = response.ok ? await response.json() : await response.text()
-      return { data, status: response.status }
-    } catch (error) {
-      logger.error(JSON.stringify(error))
-      throw error
-    }
-  }
-
   private async login(): Promise<void> {
-    const { data, status } = await this.apiCall(
-      `/users/login`,
-      'POST',
-      {
+    const response = await fetch(`${this.url}/users/login`, {
+      method: 'POST',
+      body: JSON.stringify({
         username: 'iggy',
         password: 'iggy',
-      },
-      { 'Content-Type': 'application/json' },
-    )
+      }),
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    const data = response.ok ? await response.json() : await response.text()
+    const status = response.status
 
     if (data && status === 200) {
       this.authTokens = data
@@ -81,41 +67,50 @@ export class IggyProducer {
   }
 
   private async createStream(stream_id = 1, name = 'stream1'): Promise<void> {
-    const { data, status } = await this.apiCall(`/streams`, 'POST', {
-      stream_id,
-      name,
+    const response = await fetch(`${this.url}/streams`, {
+      method: 'POST',
+      body: JSON.stringify({
+        stream_id,
+        name,
+      }),
+      headers: this.requestHeaders,
     })
 
-    logger.info(data)
+    const data = response.ok ? await response.json() : await response.text()
+    const status = response.status
+
+    logger.info(JSON.stringify(data))
+    logger.info(`status: ${status}`)
 
     if (data && status === 400 && JSON.parse(data).code === 'stream_name_already_exists') {
       return
     }
 
-    if (data && status === 201) {
+    if (data && status !== 201) {
       throw new Error(`Failed to create stream. Reason: ${data} got status ${status}`)
     }
-
-    logger.info(JSON.stringify(data))
   }
 
   private async createTopic(stream_id = 1, topic_id = 1, name = 'topic1'): Promise<void> {
-    const { data, status } = await this.apiCall(`/streams/${stream_id}/topics`, 'POST', {
-      topic_id,
-      name,
-      replication_factor: 1,
-      partitions_count: 3,
+    const response = await fetch(`${this.url}/streams/${stream_id}/topics`, {
+      method: 'POST',
+      body: JSON.stringify({ topic_id: topic_id, name: name, replication_factor: 1, partitions_count: 3 }),
+      headers: this.requestHeaders,
     })
+
+    const data = response.ok ? await response.json() : await response.text()
+    const status = response.status
+
+    logger.info(JSON.stringify(data))
+    logger.info(`status: ${status}`)
 
     if (data && status === 400 && JSON.parse(data).code === 'topic_name_already_exists') {
       return
     }
 
-    if (data && status === 201) {
+    if (data && status !== 201) {
       throw new Error(`Failed to create stream. Reason: ${data} got status ${status}`)
     }
-
-    logger.info(JSON.stringify(data))
   }
 
   async postMessage(message: TransactionObject): Promise<void> {
