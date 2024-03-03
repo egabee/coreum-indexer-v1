@@ -7,7 +7,7 @@ function currentTimestampInSeconds(): number {
 }
 
 export class IggyProducer {
-  private authTokens: {
+  authTokens: {
     user_id: number
     tokens: {
       access_token: {
@@ -20,12 +20,10 @@ export class IggyProducer {
       }
     }
   }
-  private url: string
-  private requestHeaders: {
-    headers: {
-      'Content-Type': 'application/json'
-      Authorization: string
-    }
+  url: string
+  requestHeaders: {
+    'Content-Type': 'application/json'
+    Authorization: string
   }
 
   constructor(url: string) {
@@ -74,10 +72,8 @@ export class IggyProducer {
     if (data && status === 200) {
       this.authTokens = data
       this.requestHeaders = {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${this.authTokens.tokens.access_token.token}`,
-        },
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.authTokens.tokens.access_token.token}`,
       }
     } else {
       logger.error(`Failed to login iggy server. Got ${status}`)
@@ -127,22 +123,26 @@ export class IggyProducer {
       await this.login()
     }
 
-    const { data, status } = await this.apiCall(`/streams/1/topics/1/messages`, 'POST', {
-      partitioning: {
-        kind: 'balanced',
-        value: '',
-      },
-      messages: [
-        {
-          id: currentTimestampInSeconds(),
-          payload: Buffer.from(JSON.stringify(message)).toString('base64'),
+    const response = await fetch(`${this.url}/streams/1/topics/1/messages`, {
+      body: JSON.stringify({
+        partitioning: {
+          kind: 'balanced',
+          value: '',
         },
-      ],
+        messages: [
+          {
+            id: currentTimestampInSeconds(),
+            payload: Buffer.from(JSON.stringify(message)).toString('base64'),
+          },
+        ],
+      }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `${this.requestHeaders.Authorization}` },
     })
 
-    if (status !== 201) {
-      logger.error(`${data}`)
-      throw new Error(`Failed to post message to iggy server. Got ${status} status from server`)
+    if (response.status !== 201) {
+      logger.error(`${await response.text()}`)
+      throw new Error(`Failed to post message to iggy server. Got ${response.status} status from server`)
     }
   }
 }
