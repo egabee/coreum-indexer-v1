@@ -52,7 +52,7 @@ export class IggyProducer {
         headers: headers || this.requestHeaders,
       })
 
-      const data = await response.json()
+      const data = response.ok ? await response.json() : JSON.parse(await response.text())
       return { data, status: response.status }
     } catch (error) {
       logger.error(JSON.stringify(error))
@@ -89,6 +89,8 @@ export class IggyProducer {
       stream_id,
       name,
     })
+
+    logger.info(data)
 
     if (data && status === 400 && data.code === 'stream_name_already_exists') {
       return
