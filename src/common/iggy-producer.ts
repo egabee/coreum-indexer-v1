@@ -1,6 +1,7 @@
 import fetch from 'node-fetch'
 
 import { TransactionObject } from '../mappings/interfaces'
+import { toJson } from './utils'
 
 function currentTimestampInSeconds(): number {
   return Math.floor(Date.now() / 1000)
@@ -127,7 +128,7 @@ export class IggyProducer {
         messages: [
           {
             id: currentTimestampInSeconds(),
-            payload: Buffer.from(JSON.stringify(message)).toString('base64'),
+            payload: Buffer.from(toJson(message)).toString('base64'),
           },
         ],
       }),
