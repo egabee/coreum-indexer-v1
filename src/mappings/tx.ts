@@ -146,5 +146,6 @@ function createTransactionObject(cosmosTx: CosmosTransaction, messages: GenericM
     success: code === 0,
     blockNumber: header.height,
     timestamp: BigInt(header.time.valueOf()).toString(),
+    chainId: header.chainId,
   }
 }
