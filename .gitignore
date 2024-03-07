@@ -11,7 +11,7 @@ dist/
 # lock files
 yarn.lock
 package-lock.json
-
+.env
 # Compiled Java class files
 *.class
 
