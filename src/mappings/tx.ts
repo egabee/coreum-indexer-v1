@@ -2,8 +2,8 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-// import { TOPIC_MESSAGE } from '../common/constants'
-// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+import { TOPIC_MESSAGE } from '../common/constants'
+import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
 import { EventLog, GenericMessage, TransactionObject } from './interfaces'
 import { IggyProducer } from '../common/iggy-producer'
@@ -40,6 +40,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   await iggyProducer.postMessage(transaction)
   // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
   logger.debug(`Full tx: ${toJson(transaction)}`)
+  // console.log(transaction)
 }
 
 /**
@@ -146,6 +147,10 @@ function createTransactionObject(cosmosTx: CosmosTransaction, messages: GenericM
     success: code === 0,
     blockNumber: header.height,
     timestamp: BigInt(header.time.valueOf()).toString(),
-    chainId: header.chainId,
+    chainId: header.chainId,    
+    memo:cosmosTx.decodedTx.body.memo,
+    authInfo:cosmosTx.decodedTx.authInfo,
+    timeoutHeight:cosmosTx.decodedTx.body.timeoutHeight,
+    signatures:cosmosTx.decodedTx.signatures,
   }
 }
