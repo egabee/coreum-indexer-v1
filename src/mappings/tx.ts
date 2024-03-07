@@ -2,12 +2,19 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { TOPIC_MESSAGE } from '../common/constants'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+// import { TOPIC_MESSAGE } from '../common/constants'
+// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
 import { EventLog, GenericMessage, TransactionObject } from './interfaces'
+import { IggyProducer } from '../common/iggy-producer'
+
+let iggyProducer: IggyProducer
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
+  if (!iggyProducer) {
+    iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
+  }
+
   const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
 
@@ -30,8 +37,9 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   }
 
   const transaction = createTransactionObject(tx, messages)
-  await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
-  logger.info(`Full tx: ${toJson(transaction)}`)
+  await iggyProducer.postMessage(transaction)
+  // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
+  logger.debug(`Full tx: ${toJson(transaction)}`)
 }
 
 /**
@@ -138,5 +146,6 @@ function createTransactionObject(cosmosTx: CosmosTransaction, messages: GenericM
     success: code === 0,
     blockNumber: header.height,
     timestamp: BigInt(header.time.valueOf()).toString(),
+    chainId: header.chainId,
   }
 }

@@ -42,6 +42,7 @@ export interface TransactionObject {
   blockNumber: number
   // "Timestamp in which the balance was last modified "
   timestamp: string
+  chainId: string
 }
 
 export interface TransactionTopic {
