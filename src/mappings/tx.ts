@@ -2,18 +2,18 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { TOPIC_MESSAGE } from '../common/constants'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+// import { TOPIC_MESSAGE } from '../common/constants'
+// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
-import { EventLog, GenericMessage, TransactionObject } from './interfaces'
-import { IggyProducer } from '../common/iggy-producer'
+import { AuthInfo, EventLog, GenericMessage, TransactionObject } from './interfaces'
+// import { IggyProducer } from '../common/iggy-producer'
 
-let iggyProducer: IggyProducer
+// let iggyProducer: IggyProducer
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
-  if (!iggyProducer) {
-    iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
-  }
+  // if (!iggyProducer) {
+  //   iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
+  // }
 
   const { height } = tx.block.header
   logger.info(`-------- ${height} -----------`)
@@ -36,11 +36,37 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
     }
   }
 
-  const transaction = createTransactionObject(tx, messages)
-  await iggyProducer.postMessage(transaction)
+  const authInfo: { signerInfos: any[]; fee?: any } = { signerInfos: [] }
+  for (const { publicKey: pubKey, sequence, modeInfo } of tx.decodedTx.authInfo.signerInfos) {
+    if (pubKey) {
+      // logger.info(`publicKey ${JSON.stringify(pubKey)}`)
+      const msgType = registry.lookupType(pubKey.typeUrl)
+      const cryptoType=pubKey.typeUrl;
+      const decodedSignerInfoValue = msgType?.decode(pubKey.value)
+      // logger.info(`Decoded signer info: ${JSON.stringify(decodedSignerInfoValue)}`)
+
+      authInfo.signerInfos.push({
+        pubKey: {value:decodedSignerInfoValue,typeUrl:cryptoType},
+        sequence,
+        modeInfo,
+      })
+    }
+  }
+  authInfo.fee = tx.decodedTx.authInfo.fee
+  const signaturesArray = [];
+  for (const signature of tx.decodedTx.signatures) {
+      signaturesArray.push(signature);
+  }
+
+  const concatenatedSignatures = new Uint8Array(signaturesArray.flatMap(signature => Array.from(signature)));
+
+  const signatures = Buffer.from(concatenatedSignatures).toString('base64');
+
+  // logger.info(`========>> ${signatures} ===== ${tx.decodedTx.signatures}`)
+  const transaction = createTransactionObject(tx, authInfo, signatures, messages)
+  // await iggyProducer.postMessage(transaction)
   // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
   logger.debug(`Full tx: ${toJson(transaction)}`)
-  // console.log(transaction)
 }
 
 /**
@@ -123,7 +149,12 @@ function tryDecodeMessage({ typeUrl, value }: ProtoAny, block: number): any {
  * @param messages GenericMessage[]
  * @returns TransactionObject
  */
-function createTransactionObject(cosmosTx: CosmosTransaction, messages: GenericMessage[]): TransactionObject {
+function createTransactionObject(
+  cosmosTx: CosmosTransaction,
+  authInfo: AuthInfo,
+  signatures: any,
+  messages: GenericMessage[],
+): TransactionObject {
   const {
     tx: { events, gasUsed, gasWanted, log, code },
     block: { header },
@@ -147,10 +178,10 @@ function createTransactionObject(cosmosTx: CosmosTransaction, messages: GenericM
     success: code === 0,
     blockNumber: header.height,
     timestamp: BigInt(header.time.valueOf()).toString(),
-    chainId: header.chainId,    
-    memo:cosmosTx.decodedTx.body.memo,
-    authInfo:cosmosTx.decodedTx.authInfo,
-    timeoutHeight:cosmosTx.decodedTx.body.timeoutHeight,
-    signatures:cosmosTx.decodedTx.signatures,
+    chainId: header.chainId,
+    authInfo,
+    signatures,
+    memo: cosmosTx.decodedTx.body.memo,
+    timeoutHeight: cosmosTx.decodedTx.body.timeoutHeight,
   }
 }

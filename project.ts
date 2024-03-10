@@ -22,7 +22,8 @@ const project: CosmosProject = {
   dataSources: [
     {
       kind: CosmosDatasourceKind.Runtime,
-      startBlock: 13000000,
+      startBlock: 7000000,
+      
       mapping: {
         file: './dist/index.js',
         handlers: [
@@ -180,6 +181,13 @@ const project: CosmosProject = {
         'cosmos.crypto.ed.keys',
         {
           file: './proto/cosmos/crypto/ed25519/keys.proto',
+          messages: ['PubKey', 'PrivKey'],
+        },
+      ],
+      [
+        'cosmos.crypto.secp256k1.keys',
+        {
+          file: './proto/cosmos/crypto/secp256k1/keys.proto',
           messages: ['PubKey', 'PrivKey'],
         },
       ],
