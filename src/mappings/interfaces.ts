@@ -46,6 +46,8 @@ export interface TransactionObject {
   authInfo: AuthInfo;
   signatures: readonly Uint8Array[];
   timeoutHeight: Long;
+  extensionOptions?:any[];
+  nonCriticalExtensionOptions?: any[];
 }
 
 export interface AuthInfo {
