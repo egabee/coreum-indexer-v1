@@ -2,21 +2,21 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-// import { TOPIC_MESSAGE } from '../common/constants'
+import { TOPIC_MESSAGE } from '../common/constants'
 // import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
 import { AuthInfo, EventLog, GenericMessage, TransactionObject } from './interfaces'
-// import { IggyProducer } from '../common/iggy-producer'
+import { IggyProducer } from '../common/iggy-producer'
 
-// let iggyProducer: IggyProducer
+let iggyProducer: IggyProducer
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
-  // if (!iggyProducer) {
-  //   iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
-  // }
+  if (!iggyProducer) {
+    iggyProducer = await IggyProducer.create(process.env.IGGY_URL!)
+  }
 
   const { height } = tx.block.header
-  logger.info(`-------- ${height} -----------`)
+  // logger.info(`-------- ${height} -----------`)
 
   const messages: GenericMessage[] = []
 
@@ -64,9 +64,9 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
 
   // logger.info(`========>> ${signatures} ===== ${tx.decodedTx.signatures}`)
   const transaction = createTransactionObject(tx, authInfo, signatures, messages)
-  // await iggyProducer.postMessage(transaction)
+  await iggyProducer.postMessage(transaction)
   // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
-  logger.info(`Full tx: ${toJson(transaction)}`)
+  logger.debug(`Full tx: ${toJson(transaction)}`)
 }
 
 /**
