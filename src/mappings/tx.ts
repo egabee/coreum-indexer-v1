@@ -2,8 +2,6 @@ import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
 
 import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { TOPIC_MESSAGE } from '../common/constants'
-// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
 import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
 import { AuthInfo, EventLog, GenericMessage, TransactionObject } from './interfaces'
 import { IggyProducer } from '../common/iggy-producer'
@@ -37,35 +35,37 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   }
 
   const authInfo: { signerInfos: any[]; fee?: any } = { signerInfos: [] }
+
   for (const { publicKey: pubKey, sequence, modeInfo } of tx.decodedTx.authInfo.signerInfos) {
     if (pubKey) {
-      // logger.info(`publicKey ${JSON.stringify(pubKey)}`)
       const msgType = registry.lookupType(pubKey.typeUrl)
-      const cryptoType=pubKey.typeUrl;
-      const decodedSignerInfoValue = msgType?.decode(pubKey.value)
-      // logger.info(`Decoded signer info: ${JSON.stringify(decodedSignerInfoValue)}`)
+      if (!msgType) {
+        throw new Error(`Message type not found for pubKey.typeUrl = ${pubKey.typeUrl}`)
+      }
+
+      const decodedSignerInfoValue = msgType.decode(pubKey.value)
 
       authInfo.signerInfos.push({
-        pubKey: {value:decodedSignerInfoValue,typeUrl:cryptoType},
+        pubKey: decodedSignerInfoValue.key,
         sequence,
         modeInfo,
       })
     }
   }
+
   authInfo.fee = tx.decodedTx.authInfo.fee
-  const signaturesArray = [];
+  const signaturesArray = []
+
   for (const signature of tx.decodedTx.signatures) {
-      signaturesArray.push(signature);
+    signaturesArray.push(signature)
   }
 
-  const concatenatedSignatures = new Uint8Array(signaturesArray.flatMap(signature => Array.from(signature)));
+  const concatenatedSignatures = new Uint8Array(signaturesArray.flatMap((signature) => Array.from(signature)))
 
-  const signatures = Buffer.from(concatenatedSignatures).toString('base64');
+  const signatures = Buffer.from(concatenatedSignatures).toString('base64')
 
-  // logger.info(`========>> ${signatures} ===== ${tx.decodedTx.signatures}`)
   const transaction = createTransactionObject(tx, authInfo, signatures, messages)
   await iggyProducer.postMessage(transaction)
-  // await sendBatchOfMessagesToKafka({ topic: TOPIC_MESSAGE, message: transaction })
   logger.debug(`Full tx: ${toJson(transaction)}`)
 }
 
@@ -183,7 +183,7 @@ function createTransactionObject(
     signatures,
     memo: cosmosTx.decodedTx.body.memo,
     timeoutHeight: cosmosTx.decodedTx.body.timeoutHeight,
-    extensionOptions:cosmosTx.decodedTx.body.extensionOptions,
-    nonCriticalExtensionOptions:cosmosTx.decodedTx.body.nonCriticalExtensionOptions
+    extensionOptions: cosmosTx.decodedTx.body.extensionOptions,
+    nonCriticalExtensionOptions: cosmosTx.decodedTx.body.nonCriticalExtensionOptions,
   }
 }
