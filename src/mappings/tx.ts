@@ -1,10 +1,11 @@
 import { CosmosTransaction } from '@subql/types-cosmos'
 import { TextDecoder } from 'util'
+import { AuthInfo, TxBody } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 
-import { Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
-import { AuthInfo, EventLog, GenericMessage, TransactionObject } from './interfaces'
 import { IggyProducer } from '../common/iggy-producer'
+import { Any, Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
+import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
+import { CustomAuthInfo, EventLog, GenericMessage, TransactionObject, TxExtensions } from './interfaces'
 
 let iggyProducer: IggyProducer
 
@@ -14,7 +15,6 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
   }
 
   const { height } = tx.block.header
-  // logger.info(`-------- ${height} -----------`)
 
   const messages: GenericMessage[] = []
 
@@ -34,38 +34,19 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
     }
   }
 
-  const authInfo: { signerInfos: any[]; fee?: any } = { signerInfos: [] }
+  const signatures = Buffer.from(
+    new Uint8Array(tx.decodedTx.signatures.flatMap((signature) => Array.from(signature))),
+  ).toString('base64')
 
-  for (const { publicKey: pubKey, sequence, modeInfo } of tx.decodedTx.authInfo.signerInfos) {
-    if (pubKey) {
-      const msgType = registry.lookupType(pubKey.typeUrl)
-      if (!msgType) {
-        throw new Error(`Message type not found for pubKey.typeUrl = ${pubKey.typeUrl}`)
-      }
-
-      const decodedSignerInfoValue = msgType.decode(pubKey.value)
-
-      authInfo.signerInfos.push({
-        pubKey: decodedSignerInfoValue.key,
-        sequence,
-        modeInfo,
-      })
-    }
-  }
-
-  authInfo.fee = tx.decodedTx.authInfo.fee
-  const signaturesArray = []
-
-  for (const signature of tx.decodedTx.signatures) {
-    signaturesArray.push(signature)
-  }
-
-  const concatenatedSignatures = new Uint8Array(signaturesArray.flatMap((signature) => Array.from(signature)))
-
-  const signatures = Buffer.from(concatenatedSignatures).toString('base64')
-
-  const transaction = createTransactionObject(tx, authInfo, signatures, messages)
+  const transaction = createTransactionObject(
+    tx,
+    messages,
+    decodeAuthInfo(tx.decodedTx.authInfo),
+    signatures,
+    decodeExtensions(tx.decodedTx.body),
+  )
   await iggyProducer.postMessage(transaction)
+
   logger.debug(`Full tx: ${toJson(transaction)}`)
 }
 
@@ -151,9 +132,10 @@ function tryDecodeMessage({ typeUrl, value }: ProtoAny, block: number): any {
  */
 function createTransactionObject(
   cosmosTx: CosmosTransaction,
-  authInfo: AuthInfo,
-  signatures: any,
   messages: GenericMessage[],
+  authInfo: CustomAuthInfo,
+  signatures: string,
+  extentions: TxExtensions,
 ): TransactionObject {
   const {
     tx: { events, gasUsed, gasWanted, log, code },
@@ -183,7 +165,57 @@ function createTransactionObject(
     signatures,
     memo: cosmosTx.decodedTx.body.memo,
     timeoutHeight: cosmosTx.decodedTx.body.timeoutHeight,
-    extensionOptions: cosmosTx.decodedTx.body.extensionOptions,
-    nonCriticalExtensionOptions: cosmosTx.decodedTx.body.nonCriticalExtensionOptions,
+    extensionOptions: extentions.extensionOptions,
+    nonCriticalExtensionOptions: extentions.nonCriticalExtensionOptions,
   }
+}
+
+function decodeAuthInfo({ fee, signerInfos }: AuthInfo): CustomAuthInfo {
+  const authSignerInfos = []
+
+  for (const { publicKey: pkey, sequence, modeInfo } of signerInfos) {
+    let pubKeyValue
+
+    if (pkey) {
+      const msgType = registry.lookupType(pkey.typeUrl)
+      if (!msgType) {
+        throw new Error(`Message type not found for pubKey.typeUrl = ${pkey.typeUrl}`)
+      }
+
+      pubKeyValue = msgType.decode(pkey.value)
+    }
+
+    authSignerInfos.push({
+      pubKey: { ...JSON.parse(JSON.stringify(pubKeyValue)), type: pkey?.typeUrl },
+      sequence: sequence.toString(),
+      modeInfo,
+    })
+  }
+
+  return {
+    signerInfos: authSignerInfos,
+    fee,
+  }
+}
+
+function decodeExtensions(txBody: TxBody): TxExtensions {
+  const extensionOptions = txBody.extensionOptions.map((ext: Any) => {
+    const ty = registry.lookupType(ext.typeUrl)
+    if (!ty) {
+      throw new Error(`Unknown type detected for extensionOptions ${ext.typeUrl}`)
+    }
+
+    return { type: ext.typeUrl, value: ty.decode(ext.value) }
+  })
+
+  const nonCriticalExtensionOptions = txBody.nonCriticalExtensionOptions.map((ext: Any) => {
+    const ty = registry.lookupType(ext.typeUrl)
+    if (!ty) {
+      throw new Error(`Unknown type detected for extensionOptions ${ext.typeUrl}`)
+    }
+
+    return { type: ext.typeUrl, value: ty.decode(ext.value) }
+  })
+
+  return { extensionOptions, nonCriticalExtensionOptions }
 }
