@@ -44,6 +44,7 @@
     "@subql/types-core": "^0.3.0",
     "@subql/types-cosmos": "latest",
     "@types/node": "^17.0.45",
+    "cosmjs-types": "0.7",
     "dotenv": "^16.3.1",
     "is-base64": "^1.1.0",
     "kafkajs": "^2.2.4",
