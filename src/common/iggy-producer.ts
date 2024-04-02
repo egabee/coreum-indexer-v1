@@ -98,6 +98,9 @@ export class IggyProducer {
       headers: this.requestHeaders,
     })
 
+    const status = response.status
+    logger.debug(`status: ${status}`)
+
     if (response.status !== 201) {
       logger.error(`${await response.text()}`)
       throw new Error(`Failed to post message to iggy server. Got ${response.status} status from server`)

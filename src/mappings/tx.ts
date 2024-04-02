@@ -45,9 +45,10 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
     signatures,
     decodeExtensions(tx.decodedTx.body),
   )
-  await iggyProducer.postMessage(transaction)
 
   logger.debug(`Full tx: ${toJson(transaction)}`)
+
+  await iggyProducer.postMessage(transaction)
 }
 
 /**
@@ -185,8 +186,14 @@ function decodeAuthInfo({ fee, signerInfos }: AuthInfo): CustomAuthInfo {
       pubKeyValue = msgType.decode(pkey.value)
     }
 
+    try {
+      pubKeyValue = pubKeyValue ? JSON.parse(JSON.stringify(pubKeyValue)) : {}
+    } catch (err) {
+      logger.error(`JSON ser/deser public key error. Reason ${toJson(err)}`)
+    }
+
     authSignerInfos.push({
-      pubKey: { ...JSON.parse(JSON.stringify(pubKeyValue)), type: pkey?.typeUrl },
+      pubKey: { ...pubKeyValue, type: pkey?.typeUrl },
       sequence: sequence.toString(),
       modeInfo,
     })
