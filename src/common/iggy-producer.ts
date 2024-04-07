@@ -61,7 +61,13 @@ export class IggyProducer {
   private async createTopic(stream_id = 1, topic_id = 1, name = 'topic1'): Promise<void> {
     const response = await fetch(`${this.url}/streams/${stream_id}/topics`, {
       method: 'POST',
-      body: JSON.stringify({ topic_id: topic_id, name: name, replication_factor: 1, partitions_count: 3 }),
+      body: JSON.stringify({
+        topic_id: topic_id,
+        name: name,
+        replication_factor: 1,
+        partitions_count: 3,
+        compression_algorithm: 1,
+      }),
       headers: this.requestHeaders,
     })
 
