@@ -46,7 +46,7 @@ export interface TransactionObject {
   memo: string
   authInfo: CustomAuthInfo
   signatures: string
-  timeoutHeight: Long
+  timeoutHeight: string
   extensionOptions?: ExtensionOptions[]
   nonCriticalExtensionOptions?: NonCriticalExtensionOptions[]
 }

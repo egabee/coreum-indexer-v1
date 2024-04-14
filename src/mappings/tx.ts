@@ -165,7 +165,7 @@ function createTransactionObject(
     authInfo,
     signatures,
     memo: cosmosTx.decodedTx.body.memo,
-    timeoutHeight: cosmosTx.decodedTx.body.timeoutHeight,
+    timeoutHeight: cosmosTx.decodedTx.body.timeoutHeight.toString(),
     extensionOptions: extentions.extensionOptions,
     nonCriticalExtensionOptions: extentions.nonCriticalExtensionOptions,
   }
