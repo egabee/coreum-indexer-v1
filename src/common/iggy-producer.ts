@@ -66,7 +66,7 @@ export class IggyProducer {
         name: name,
         replication_factor: 1,
         partitions_count: 3,
-        compression_algorithm: 'gzip',
+        compression_algorithm: 'none',
       }),
       headers: this.requestHeaders,
     })
