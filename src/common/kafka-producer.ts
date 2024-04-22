@@ -1,10 +1,12 @@
 import { Kafka } from 'kafkajs'
 
 import { toJson } from './utils'
-import { TransactionTopic } from '../mappings/interfaces'
+import { TransactionObject, TransactionTopic } from '../mappings/interfaces'
+
+const TOPIC = process.env.KAFKA_TOPIC!
 
 const kafka = new Kafka({
-  brokers: process.env.KAFKA_BROKERS?.split(',') || [],
+  brokers: process.env.KAFKA_BROKERS!.split(',') || [],
   clientId: 'coreum-producer-client',
 })
 
@@ -28,16 +30,17 @@ connectProducer()
  * @param messages - An array of messages to send
  * @param topic - The topic to send the messages to
  */
-export async function sendBatchOfMessagesToKafka({ message, topic }: TransactionTopic): Promise<void> {
+export async function sendBatchOfMessagesToKafka(message: TransactionObject): Promise<void> {
   if (!producerConnected) {
     await connectProducer()
   }
+
   try {
     const messageResults = await producer.sendBatch({
       topicMessages: [
         {
-          messages: [{ value: toJson({ ...message, chainId: process.env.CHAIN_ID }) }],
-          topic,
+          messages: [{ value: toJson(message) }],
+          topic: TOPIC,
         },
       ],
     })
@@ -48,7 +51,7 @@ export async function sendBatchOfMessagesToKafka({ message, topic }: Transaction
     }
   } catch (error) {
     logger.error(`Error pushing batch of messages to Kafka: ${JSON.stringify(error)}`)
-    await sendFailureReport({ message, topic })
+    await sendFailureReport({ message, topic: TOPIC })
   }
 }
 
