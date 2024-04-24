@@ -4,6 +4,11 @@ import { toJson } from './utils'
 import { TransactionObject, TransactionTopic } from '../mappings/interfaces'
 
 const TOPIC = process.env.KAFKA_TOPIC!
+const PARTITIONS = [0, 1, 2]
+
+function randomPartition(): number {
+  return PARTITIONS[Math.floor(Math.random() * PARTITIONS.length)]
+}
 
 const kafka = new Kafka({
   brokers: process.env.KAFKA_BROKERS!.split(',') || [],
@@ -39,7 +44,7 @@ export async function sendBatchOfMessagesToKafka(message: TransactionObject): Pr
     const messageResults = await producer.sendBatch({
       topicMessages: [
         {
-          messages: [{ value: toJson(message) }],
+          messages: [{ value: toJson(message), partition: randomPartition() }],
           topic: TOPIC,
         },
       ],
