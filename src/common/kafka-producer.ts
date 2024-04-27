@@ -4,7 +4,7 @@ import { toJson } from './utils'
 import { TransactionObject, TransactionTopic } from '../mappings/interfaces'
 
 const TOPIC = process.env.KAFKA_TOPIC!
-const PARTITIONS = [0, 1, 2]
+const PARTITIONS = [0, 1, 2, 3, 4, 5]
 
 function randomPartition(): number {
   return PARTITIONS[Math.floor(Math.random() * PARTITIONS.length)]
