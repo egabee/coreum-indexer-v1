@@ -3,9 +3,10 @@ import { TextDecoder } from 'util'
 import { AuthInfo, TxBody } from 'cosmjs-types/cosmos/tx/v1beta1/tx'
 
 import { Any, Any as ProtoAny } from '../types/proto-interfaces/google/protobuf/any'
-import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '../common/utils'
 import { CustomAuthInfo, EventLog, GenericMessage, TransactionObject, TxExtensions } from './interfaces'
-import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+// import { sendBatchOfMessagesToKafka } from '../common/kafka-producer'
+import { sendBatchOfMessagesToKafka } from '@egabee/cosmos-indexer-common/lib/kafka'
+import { addToUnknownMessageTypes, isEmptyStringObject, toJson } from '@egabee/cosmos-indexer-common/lib/utils'
 
 export async function handleTx(tx: CosmosTransaction): Promise<void> {
   const { height } = tx.block.header
@@ -16,7 +17,7 @@ export async function handleTx(tx: CosmosTransaction): Promise<void> {
     const knownType = registry.lookupType(typeUrl)
 
     if (!knownType || isEmptyStringObject(knownType)) {
-      addToUnknownMessageTypes({ type: typeUrl, blocks: [height] })
+      addToUnknownMessageTypes({ type: typeUrl, blocks: [height] }, logger)
       continue
     }
 
@@ -107,7 +108,7 @@ function tryDecodeMessage({ typeUrl, value }: ProtoAny, block: number): any {
   const knownType = registry.lookupType(typeUrl)
 
   if (!knownType || isEmptyStringObject(knownType)) {
-    addToUnknownMessageTypes({ type: typeUrl, blocks: [block] })
+    addToUnknownMessageTypes({ type: typeUrl, blocks: [block] }, logger)
     throw new Error(`Unknown type detected. Type url: ${typeUrl}`)
   }
 
