@@ -1,9 +1,10 @@
 import { Kafka } from 'kafkajs'
+import * as dotenv from 'dotenv'
 
-const BROKERS = '35.241.225.177:19092,35.241.225.177:29092,35.241.225.177:39092'
+dotenv.config()
 
 const kafka = new Kafka({
-  brokers: BROKERS.split(',') || [],
+  brokers: process.env.KAFKA_BROKERS!.split(',') || [],
 })
 
 const producer = kafka.producer()
@@ -21,9 +22,13 @@ connectProducer()
 
 kafka
   .admin()
-  .createTopics({ topics: [{ topic: 'txs', numPartitions: 6 }] })
-  .then(() => {
-    console.log(`Topic created.`)
+  .createTopics({ topics: [{ topic: 'txs1', numPartitions: 6 }] })
+  .then((result) => {
+    if (result) {
+      console.log(`Topic created.`)
+    } else {
+      console.log(`Failed to create topic`)
+    }
   })
   .catch(console.error)
   .finally(process.exit)
