@@ -1,15 +1,26 @@
 import { CosmosBlock, CosmosTransaction } from '@subql/types-cosmos'
 import isBase64 from 'is-base64'
 import * as fs from 'fs'
-import { UnknownMessageType } from '../mappings/interfaces'
 import Long from 'long'
+
+import { UnknownMessageType } from '../mappings/interfaces'
+
+export function ensureEnvs(): void {
+  if (!process.env.KAFKA_TOPIC) {
+    throw new Error(`KAFKA_TOPIC environment variable is undefined`)
+  }
+
+  if (!process.env.KAFKA_BROKERS) {
+    throw new Error(`KAFKA_TOPIC environment variable is undefined`)
+  }
+}
 
 export function getTimestamp(block: CosmosBlock): bigint {
   return BigInt(block.header.time.valueOf())
 }
 
 export function toJson(o: any): string {
-  return JSON.stringify(o, (_, v) => (Long.isLong(v) ? v.toString() : v))
+  return JSON.stringify(o, (_, v) => (Long.isLong(v) || typeof v === 'bigint' ? v.toString() : v))
 }
 
 export function isTransactionSuccessful(tx: CosmosTransaction): boolean {
